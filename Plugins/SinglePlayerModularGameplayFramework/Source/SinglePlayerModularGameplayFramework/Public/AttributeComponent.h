@@ -9,6 +9,34 @@
 
 #include "AttributeComponent.generated.h"
 
+UENUM(BlueprintType, Blueprintable)
+enum class EOvertimeEffectType : uint8
+{
+	Increase UMETA(DisplayName = "Increase"),
+	Decrease UMETA(DisplayName = "Decrease")
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct FOvertimeEffect
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FName EffectName;
+
+	UPROPERTY()
+	float Value = 0.f;
+
+	UPROPERTY()
+	float TickRate = 0.f;
+
+	UPROPERTY()
+	float Accumulator = 0.f;
+
+	UPROPERTY()
+	EOvertimeEffectType EffectType;
+
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable, BlueprintType )
 class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API UAttributeComponent : public UActorComponent
@@ -32,82 +60,26 @@ public:
 	TArray<FAttributeData> Attributes;
 
 
-
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	float GetAttributePropertyBaseValue(FName Attr, EAttributePropertyName APN, EAttributePropertyType APT);
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetAttributeCurrentValue(FName Attribute) ;
+	float GetAttributePropertyComputedValue(FName Attr, EAttributePropertyName APN, EAttributePropertyType APT);
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetAttributeBaseValue(FName Attribute);
+	void UpdateAttributePropertyValue(FName Attr, float Value, float Limit, bool bOverride, EAttributePropertyName APN, EAttributePropertyType APT);
+	
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void DecreaseAttributeOvertime(FName Attribute, const FOvertimeEffect& Effect);
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetAttributeMaxValue(FName Attribute);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetAttributeCurrentRegenValue(FName Attribute);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetAttributeBaseRegenValue(FName Attribute);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetAttributeMaxRegenValue(FName Attribute);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetAttributeCurrentDepletationValue(FName Attribute);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetAttributeBaseDepletationValue(FName Attribute);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetAttributeMaxDepletationValue(FName Attribute);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void UpdateAttributeCurrentValue(FName Attribute, FAttributeModifier& Mod);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void UpdateAttributeBaseValue(FName Attribute, FAttributeModifier& Mod);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void UpdateAttributeMaxValue(FName Attribute, FAttributeModifier& Mod, float Limit);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void UpdateAttributeCurrentRegenValue(FName Attribute, FAttributeModifier& Mod);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void UpdateAttributeBaseRegenValue(FName Attribute, FAttributeModifier& Mod);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void UpdateAttributeMaxRegenValue(FName Attribute, FAttributeModifier& Mod, float Limit);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void UpdateAttributeCurrentDepletationValue(FName Attribute, FAttributeModifier& Mod);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void UpdateAttributeBaseDepletationValue(FName Attribute, FAttributeModifier& Mod);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void UpdateAttributeMaxDepletationValue(FName Attribute, FAttributeModifier& Mod, float Limit);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void DecreaseAttributeOvertime(float Value, FName Attribute, float TickRate, FName SourceName);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void IncreaseAttributeOvertime(float Value, FName Attribute, float TickRate, FName SourceName);
+	void IncreaseAttributeOvertime(FName Attribute, const FOvertimeEffect& Effect);
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void StopDecreasingAttribute(FName Attribute);
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void StopIncreasingAttribute(FName Attribute);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	int32 GetAttributeCurrentValueAsInt(FName Attribute);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	int32 GetAttributeBaseValueAsInt(FName Attribute);
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	int32 GetAttributeMaxValueAsInt(FName Attribute);
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void DecreaseAttribute(float Value, FName Attribute);
@@ -118,6 +90,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void StartAutoDepletation();
 
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void StartAutoRegen();
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void AddModifier(FName Attribute, FAttributeTempModifier Modifier);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void RemoveModifier(FName Attribute, FName SourceName);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void AddOvertimeEffect(FName Attribute, const FOvertimeEffect& Effect);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void RemoveOvertimeEffect(FName Attribute, FName EffectName, bool bIsDeplete);
+
 	protected:
 
 	FTimerHandle MasterTimerHandle;
@@ -125,8 +112,8 @@ public:
 	FTimerHandle AttributeIncreaseTimerHandle;
 	FTimerHandle AttributeDecreaseTimerHandle;
 
-	TMap<FName, float> ActiveDecreasings;
-	TMap<FName, float> ActiveIncreasings;
+	TMap<FName,TArray<FOvertimeEffect>> ActiveDecreasings;
+	TMap<FName, TArray<FOvertimeEffect>> ActiveIncreasings;
 
 	FAttributeData* FindAttribute(FName Attribute);
 

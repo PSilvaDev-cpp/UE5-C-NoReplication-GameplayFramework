@@ -19,7 +19,7 @@ enum class EModifierOp : uint8
 };
 
 UENUM(BlueprintType, Blueprintable)
-enum class EModType1 : uint8
+enum class EAttributePropertyName : uint8
 {
 	Default UMETA(DisplayName = "Default"),
 	Regen UMETA(DisplayName = "Regen"),
@@ -27,7 +27,7 @@ enum class EModType1 : uint8
 };
 
 UENUM(BlueprintType, Blueprintable)
-enum class EModType2 : uint8
+enum class EAttributePropertyType : uint8
 {
 	Current UMETA(DisplayName = "Current"),
 	Base UMETA(DisplayName = "Base"),
@@ -35,7 +35,7 @@ enum class EModType2 : uint8
 };
 
 USTRUCT(BlueprintType, Blueprintable)
-struct FAttributeModifier {
+struct FAttributeTempModifier {
 	GENERATED_BODY()
 
 	UPROPERTY()
@@ -45,13 +45,22 @@ struct FAttributeModifier {
 	EModifierOp Operation = EModifierOp::Add;
 
 	UPROPERTY()
-	EModType1 ModType1 = EModType1::Default;
+	EAttributePropertyName PropertyName = EAttributePropertyName::Default;
 
 	UPROPERTY()
-	EModType2 ModType2 = EModType2::Current;
+	EAttributePropertyType PropertyType = EAttributePropertyType::Current;
 
 	UPROPERTY()
-	float Value = 0.f;
+	bool bNegative;
+
+	UPROPERTY()
+	float OpValue = 0.f;
+
+	UPROPERTY()
+	float LimitValue;
+
+	UPROPERTY()
+	float BeforeOpValue; //Before Operation Value
 
 	//UPROPERTY()
 	//float Duration = -1.f; // -1 = Permanente
@@ -72,7 +81,7 @@ struct FAttributeData
 public:
 
 	UPROPERTY()
-	TArray<FAttributeModifier> Modifiers;
+	TArray<FAttributeTempModifier> Modifiers;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
 	FName AttributeName = "None";
@@ -90,10 +99,17 @@ public:
 	EAttributeType AttributeType;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
-	float TickAccumulator = 0.f;
+	float DepleteTickAccumulator = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	float RegenTickAccumulator = 0.f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
 	float DesiredTickRate = 1.0f;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
+	float CurrentRegenValue;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
 	float BaseRegenValue;
@@ -101,8 +117,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
 	float MaxRegenValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
-	float CurrentRegenValue;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
 	float CurrentDepletationValue;
@@ -112,6 +126,33 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
 	float MaxDepletationValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	float ComputedCurrentValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	float ComputedMaxValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	float ComputedBaseValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	float ComputedCurrentRegenValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	float ComputedMaxRegenValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	float ComputedBaseRegenValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	float ComputedCurrentDepletationValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	float ComputedMaxDepletationValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	float ComputedBaseDepletationValue;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
 	float RegenRate;
@@ -125,34 +166,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
 	bool bAutoDeplete;
 
-	float GetCurrentValue() const;
-	float GetBaseValue() const;
-	float GetMaxValue() const;
-	float GetCurrentRegenValue() const;
-	float GetBaseRegenValue() const;
-	float GetMaxRegenValue() const;
-	float GetCurrentDepletationValue() const;
-	float GetBaseDepletationValue() const;
-	float GetMaxDepletationValue() const;
+	float GetAttributePropertyBaseValue(EAttributePropertyName APN, EAttributePropertyType APT) const;
+	float GetAttributePropertyComputedValue(EAttributePropertyName APN, EAttributePropertyType APT) const;
 
-	void UpdateCurrentValue(float Value );
-	void UpdateBaseValue(float Value );
-	void UpdateMaxValue(float Value, float Limit);
-	void UpdateCurrentRegenValue(float Value );
-	void UpdateBaseRegenValue(float Value );
-	void UpdateMaxRegenValue(float Value, float Limit);
-	void UpdateCurrentDepletationValue(float Value );
-	void UpdateBaseDepletationValue(float Value );
-	void UpdateMaxDepletationValue(float Value, float Limit);
+	void UpdateAttributePropertyValue(float Value, EAttributePropertyName APN, EAttributePropertyType APT, float Limit, bool bOverride );
 	void Decrease(float Value);
 	void Increase(float Value);
 
-	void AddModifier(const FAttributeModifier& Modifier);
+	void AddModifier(FAttributeTempModifier& Modifier);
 	void RemoveModifier(FName SourceName);
-//	void UpdateModifiers(float DeltaTime);
-	float CalculateFinalValue(float Value);
+	void RecalculateModifiedProperties();
 
-	void RecalculateWithModifiers(float& TargetProperty);
-
-
+private:
+	float CalculateModifiedValue(EAttributePropertyName APN, EAttributePropertyType APT, float BaseValue) const;
+	void SetComputedValue(EAttributePropertyName APN, EAttributePropertyType APT, float Value);
 };
