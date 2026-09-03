@@ -3,127 +3,195 @@
 
 #include "AttributeData.h"
 
-float FAttributeData::GetCurrentValue() const
+float FAttributeData::GetAttributePropertyBaseValue(EAttributePropertyName APN, EAttributePropertyType APT) const
 {
-	return CurrentValue;
+	switch (APN)
+	{
+	case EAttributePropertyName::Default:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			return CurrentValue;
+			break;
+		case EAttributePropertyType::Base:
+			return BaseValue;
+			break;
+		case EAttributePropertyType::Max:
+			return MaxValue;
+			break;
+		default:
+			return 0.f;
+			break;
+		}
+		break;
+	case EAttributePropertyName::Regen:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			return CurrentRegenValue;
+			break;
+		case EAttributePropertyType::Base:
+			return BaseRegenValue;
+			break;
+		case EAttributePropertyType::Max:
+			return MaxRegenValue;
+			break;
+		default:
+			return 0.f;
+			break;
+		}
+		break;
+	case EAttributePropertyName::Deplet:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			return CurrentDepletationValue;
+			break;
+		case EAttributePropertyType::Base:
+			return BaseDepletationValue;
+			break;
+		case EAttributePropertyType::Max:
+			return MaxDepletationValue;
+			break;
+		default:
+			return 0.f;
+			break;
+		}
+		break;
+	default:
+		return 0.f;
+		break;
+	}
 }
 
-float FAttributeData::GetBaseValue()const
+float FAttributeData::GetAttributePropertyComputedValue(EAttributePropertyName APN, EAttributePropertyType APT) const
 {
-	return BaseValue;
+	switch (APN)
+	{
+	case EAttributePropertyName::Default:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			return ComputedCurrentValue;
+		case EAttributePropertyType::Base:
+			return ComputedBaseValue;
+		case EAttributePropertyType::Max:
+			return ComputedMaxValue;
+		default:
+			return 0.f;
+		}
+	case EAttributePropertyName::Regen:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			return ComputedCurrentRegenValue;
+		case EAttributePropertyType::Base:
+			return ComputedBaseRegenValue;
+		case EAttributePropertyType::Max:
+			return ComputedMaxRegenValue;
+		default:
+			return 0.f;
+		}
+	case EAttributePropertyName::Deplet:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			return ComputedCurrentDepletationValue;
+		case EAttributePropertyType::Base:
+			return ComputedBaseDepletationValue;
+		case EAttributePropertyType::Max:
+			return ComputedMaxDepletationValue;
+		default:
+			return 0.f;
+		}
+	default:
+		return 0.f;
+	}
 }
 
-float FAttributeData::GetMaxValue()const
+void FAttributeData::SetComputedValue(EAttributePropertyName APN, EAttributePropertyType APT, float Value)
 {
-	return MaxValue;
-}
-
-float FAttributeData::GetCurrentRegenValue()const
-{
-	return CurrentRegenValue;
-}
-
-float FAttributeData::GetBaseRegenValue()const
-{
-	return BaseRegenValue;
-}
-
-float FAttributeData::GetMaxRegenValue()const
-{
-	return MaxRegenValue;
-}
-
-float FAttributeData::GetCurrentDepletationValue()const
-{
-	return CurrentDepletationValue;
-}
-
-float FAttributeData::GetBaseDepletationValue()const
-{
-	return BaseDepletationValue;
-}
-
-float FAttributeData::GetMaxDepletationValue()const
-{
-	return MaxDepletationValue;
-}
-
-void FAttributeData::UpdateCurrentValue(float Value)
-{
-	CurrentValue = FMath::Clamp(CurrentValue + Value, 0.f, MaxValue);
-	//CurrentValue = FMath::Clamp(CalculateFinalValue(CurrentValue), 0.f, MaxValue);
-}
-
-void FAttributeData::UpdateBaseValue(float Value)
-{
-	BaseValue = FMath::Clamp(BaseValue + Value, 0.f, MaxValue);
-	//BaseValue = FMath::Clamp(CalculateFinalValue(BaseValue), 0.f, MaxValue);
-}
-
-void FAttributeData::UpdateMaxValue(float Value, float Limit)
-{
-	MaxValue = FMath::Clamp(MaxValue + Value, 0.f, Limit);
-	//MaxValue = FMath::Clamp(CalculateFinalValue(MaxValue), 0.f, Limit);
-}
-
-void FAttributeData::UpdateCurrentRegenValue(float Value)
-{
-	CurrentRegenValue = FMath::Clamp(CurrentRegenValue + Value, 0.f, MaxValue);
-	//CurrentRegenValue = FMath::Clamp(CalculateFinalValue(CurrentRegenValue), 0.f, MaxValue);
-}
-
-void FAttributeData::UpdateBaseRegenValue(float Value)
-{
-	BaseRegenValue = FMath::Clamp(BaseRegenValue + Value, 0.f, MaxValue);
-	//BaseRegenValue = FMath::Clamp(CalculateFinalValue(BaseRegenValue), 0.f, MaxValue);
-}
-
-void FAttributeData::UpdateMaxRegenValue(float Value, float Limit)
-{
-	MaxRegenValue = FMath::Clamp(MaxRegenValue + Value, 0.f, Limit);
-	//MaxRegenValue = FMath::Clamp(CalculateFinalValue(MaxRegenValue), 0.f, MaxValue);
-}
-
-void FAttributeData::UpdateCurrentDepletationValue(float Value)
-{
-	CurrentDepletationValue = FMath::Clamp(CurrentDepletationValue + Value, 0.f, MaxValue);
-	//CurrentDepletationValue = FMath::Clamp(CalculateFinalValue(CurrentDepletationValue), 0.f, MaxValue);
-}
-
-void FAttributeData::UpdateBaseDepletationValue(float Value)
-{
-	BaseDepletationValue = FMath::Clamp(BaseDepletationValue + Value, 0.f, MaxValue);
-	//BaseDepletationValue = FMath::Clamp(CalculateFinalValue(BaseDepletationValue), 0.f, MaxValue);
-}
-
-void FAttributeData::UpdateMaxDepletationValue(float Value, float Limit)
-{
-	MaxDepletationValue = FMath::Clamp(MaxDepletationValue + Value, 0.f, MaxValue);
-	//MaxDepletationValue = FMath::Clamp(CalculateFinalValue(MaxDepletationValue), 0.f, MaxValue);
+	float MaxBase = GetAttributePropertyBaseValue(APN, EAttributePropertyType::Max);
+	switch (APN)
+	{
+	case EAttributePropertyName::Default:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			ComputedCurrentValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue: MaxBase);
+			break;
+		case EAttributePropertyType::Base:
+			ComputedBaseValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue : MaxBase);
+			break;
+		case EAttributePropertyType::Max:
+			ComputedMaxValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue : MaxBase);
+			break;
+		default:
+			break;
+		}
+		break;
+	case EAttributePropertyName::Regen:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			ComputedCurrentRegenValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue : MaxBase);
+			break;
+		case EAttributePropertyType::Base:
+			ComputedBaseRegenValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue : MaxBase);
+			break;
+		case EAttributePropertyType::Max:
+			ComputedMaxRegenValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue : MaxBase);
+			break;
+		default:
+			break;
+		}
+		break;
+	case EAttributePropertyName::Deplet:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			ComputedCurrentDepletationValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue : MaxBase);
+			break;
+		case EAttributePropertyType::Base:
+			ComputedBaseDepletationValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue : MaxBase);
+			break;
+		case EAttributePropertyType::Max:
+			ComputedMaxDepletationValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue : MaxBase);
+			break;
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 void FAttributeData::Decrease(float Value)
 {
-	UpdateCurrentValue(-Value);
+	UpdateAttributePropertyValue(-Value, EAttributePropertyName::Default, EAttributePropertyType::Current, MaxValue, false);
 }
 
 void FAttributeData::Increase(float Value)
 {
-	UpdateCurrentValue(Value);
+	UpdateAttributePropertyValue(Value, EAttributePropertyName::Default, EAttributePropertyType::Current, MaxValue, false);
 }
 
-void FAttributeData::AddModifier(const FAttributeModifier& Modifier)
+void FAttributeData::AddModifier(FAttributeTempModifier& Modifier)
 {
 	Modifiers.Add(Modifier);
-
+	RecalculateModifiedProperties();
 }
 
 void FAttributeData::RemoveModifier(FName SourceName)
 {
-	Modifiers.RemoveAll([SourceName](const FAttributeModifier& Mod)
-		{
-			return Mod.SourceName == SourceName;
-		});	
+    Modifiers.RemoveAll([SourceName](const FAttributeTempModifier& Mod)
+    {
+        return Mod.SourceName == SourceName;
+    });
+
+	RecalculateModifiedProperties();
+
 }
 
 /* 
@@ -140,38 +208,132 @@ void FAttributeData::UpdateModifiers(float DeltaTime)
 }
 */
 
-float FAttributeData::CalculateFinalValue(float Value)
+void FAttributeData::UpdateAttributePropertyValue(float Value, EAttributePropertyName APN, EAttributePropertyType APT, float Limit, bool bOverride)
+{
+	switch (APN)
+	{
+	case EAttributePropertyName::Default:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			if (bOverride) { CurrentValue = Value; break; }
+			CurrentValue = FMath::Clamp(CurrentValue + Value, 0.f, MaxValue);
+			break;
+		case EAttributePropertyType::Base:
+			if (bOverride) { BaseValue = Value; break; }
+			BaseValue = FMath::Clamp(BaseValue + Value, 0.f, MaxValue);
+			break;
+		case EAttributePropertyType::Max:
+			if (bOverride) { MaxValue = Value; break; }
+			MaxValue = FMath::Clamp(MaxValue + Value, 0.f, Limit);
+			break;
+		default:
+			break;
+		}
+		break;
+	case EAttributePropertyName::Regen:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			if (bOverride) { CurrentRegenValue = Value; break; }
+			CurrentRegenValue = FMath::Clamp(CurrentRegenValue + Value, 0.f, MaxRegenValue);
+			break;
+		case EAttributePropertyType::Base:
+			if (bOverride) { BaseRegenValue = Value; break; }
+			BaseRegenValue = FMath::Clamp(BaseRegenValue + Value, 0.f, MaxRegenValue);
+			break;
+		case EAttributePropertyType::Max:
+			if (bOverride) { MaxRegenValue = Value; break; }
+			MaxRegenValue = FMath::Clamp(MaxRegenValue + Value, 0.f, Limit);
+			break;
+		default:
+			break;
+		}
+		break;
+	case EAttributePropertyName::Deplet:
+		switch (APT)
+		{
+		case EAttributePropertyType::Current:
+			if (bOverride) { CurrentDepletationValue = Value; break; }
+			CurrentDepletationValue = FMath::Clamp(CurrentDepletationValue + Value, 0.f, MaxDepletationValue);
+			break;
+		case EAttributePropertyType::Base:
+			if (bOverride) { BaseDepletationValue = Value; break; }
+			BaseDepletationValue = FMath::Clamp(BaseDepletationValue + Value, 0.f, MaxDepletationValue);
+			break;
+		case EAttributePropertyType::Max:
+			if (bOverride) { MaxDepletationValue = Value; break; }
+			MaxDepletationValue = FMath::Clamp(MaxDepletationValue + Value, 0.f, Limit);
+			break;
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+
+	RecalculateModifiedProperties();
+}
+
+void FAttributeData::RecalculateModifiedProperties()
+{
+	const TArray<EAttributePropertyName> PropertyNames =
+	{
+		EAttributePropertyName::Default,
+		EAttributePropertyName::Regen,
+		EAttributePropertyName::Deplet
+	};
+
+	const TArray<EAttributePropertyType> PropertyTypes =
+	{
+		EAttributePropertyType::Current,
+		EAttributePropertyType::Base,
+		EAttributePropertyType::Max
+	};
+
+	for (EAttributePropertyName APN : PropertyNames)
+	{
+		for (EAttributePropertyType APT : PropertyTypes)
+		{
+			float NewBaseValue = GetAttributePropertyBaseValue(APN, APT);
+			float ComputedValue = CalculateModifiedValue(APN, APT, NewBaseValue);
+			SetComputedValue(APN, APT, ComputedValue);
+		}
+	}
+}
+
+float FAttributeData::CalculateModifiedValue(EAttributePropertyName APN, EAttributePropertyType APT, float NewBaseValue) const
 {
 	float AdditiveSum = 0.f;
 	float MultiplicativeProduct = 1.0f;
-	float OverrideValue = Value;
+	float OverrideValue = NewBaseValue;
 	bool bHasOverride = false;
 
-	for (const FAttributeModifier& Mod : Modifiers)
+	for (const FAttributeTempModifier& Mod : Modifiers)
 	{
-		switch (Mod.Operation)
+		if (Mod.PropertyName == APN && Mod.PropertyType == APT)
 		{
-		case EModifierOp::Add:
-			AdditiveSum += Mod.Value;
-			break;
-		case EModifierOp::Multiply:
-			MultiplicativeProduct *= (1.0f + Mod.Value);
-			break;
-		case EModifierOp::Override:
-			if (!bHasOverride)
+			float OpValue = Mod.bNegative ? -Mod.OpValue : Mod.OpValue;
+
+			switch (Mod.Operation)
 			{
-				OverrideValue = Mod.Value;
+			case EModifierOp::Add:
+				AdditiveSum += OpValue;
+				break;
+			case EModifierOp::Multiply:
+				MultiplicativeProduct *= OpValue;
+				break;
+			case EModifierOp::Override:
+				OverrideValue = OpValue;
 				bHasOverride = true;
+				break;
 			}
-			break;
 		}
 	}
-	float Result = bHasOverride ? OverrideValue : Value;
-	Result = (Result + AdditiveSum) * MultiplicativeProduct;
-	return Result;
-}
 
-void FAttributeData::RecalculateWithModifiers(float& TargetProperty)
-{
-	TargetProperty = CalculateFinalValue(TargetProperty);
+	float Result = bHasOverride ? OverrideValue : NewBaseValue;
+	Result = (Result + AdditiveSum) * MultiplicativeProduct;
+
+	return Result;
 }

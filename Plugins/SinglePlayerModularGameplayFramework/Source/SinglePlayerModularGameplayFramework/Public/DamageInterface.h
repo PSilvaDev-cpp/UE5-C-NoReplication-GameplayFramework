@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "GameplayTagContainer.h"
+#include "DamageData.h"
 #include "DamageInterface.generated.h"
 
 /**
@@ -26,6 +27,6 @@ class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API IDamageInterface
 public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damage")
-	void OnTakeDamage(float Value, const TArray<FGameplayTag>& DamageTags, bool OverTime, float TickRate, AMainCharacter* Originator);
+	void TakeDamage(FDamageData DamageData);
 
 };

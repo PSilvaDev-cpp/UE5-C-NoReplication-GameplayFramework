@@ -4,6 +4,9 @@
 
 #include "Modules/ModuleManager.h"
 
+#define ECC_AbilityTrace ECC_GameTraceChannel1
+#define ECC_ShootTrace ECC_GameTraceChannel2
+
 class FSinglePlayerModularGameplayFrameworkModule : public IModuleInterface
 {
 public:

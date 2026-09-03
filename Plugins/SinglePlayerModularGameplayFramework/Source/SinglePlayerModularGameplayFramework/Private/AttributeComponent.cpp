@@ -19,8 +19,12 @@ void UAttributeComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	for(FAttributeData& Att : Attributes)
+	{
+		Att.RecalculateModifiedProperties();
+	}
 	StartAutoDepletation();
-
+	StartAutoRegen();
 }
 
 
@@ -44,95 +48,19 @@ FAttributeData* UAttributeComponent::FindAttribute(FName Attribute)
 	return nullptr;
 }
 
-float UAttributeComponent::GetAttributeCurrentValue(FName Attribute) 
+float UAttributeComponent::GetAttributePropertyBaseValue(FName Attr, EAttributePropertyName APN, EAttributePropertyType APT)
 {
-	return FindAttribute(Attribute)->GetCurrentValue();
+	return FindAttribute(Attr)->GetAttributePropertyBaseValue(APN, APT);
 }
 
-
-float UAttributeComponent::GetAttributeBaseValue(FName Attribute)
+float UAttributeComponent::GetAttributePropertyComputedValue(FName Attr, EAttributePropertyName APN, EAttributePropertyType APT)
 {
-	return FindAttribute(Attribute)->GetBaseValue();
+	return FindAttribute(Attr)->GetAttributePropertyComputedValue(APN, APT);
 }
 
-float UAttributeComponent::GetAttributeMaxValue(FName Attribute)
+void UAttributeComponent::UpdateAttributePropertyValue(FName Attr, float Value, float Limit, bool bOverride, EAttributePropertyName APN, EAttributePropertyType APT)
 {
-	return FindAttribute(Attribute)->GetMaxValue();
-}
-
-float UAttributeComponent::GetAttributeCurrentRegenValue(FName Attribute)
-{
-	return FindAttribute(Attribute)->GetCurrentRegenValue();
-}
-
-float UAttributeComponent::GetAttributeBaseRegenValue(FName Attribute)
-{
-	return FindAttribute(Attribute)->GetBaseRegenValue();
-}
-
-float UAttributeComponent::GetAttributeMaxRegenValue(FName Attribute)
-{
-	return FindAttribute(Attribute)->GetMaxRegenValue();
-}
-
-float UAttributeComponent::GetAttributeCurrentDepletationValue(FName Attribute)
-{
-	return FindAttribute(Attribute)->GetCurrentDepletationValue();
-}
-
-float UAttributeComponent::GetAttributeBaseDepletationValue(FName Attribute)
-{
-	return FindAttribute(Attribute)->GetBaseDepletationValue();
-}
-
-float UAttributeComponent::GetAttributeMaxDepletationValue(FName Attribute)
-{
-	return FindAttribute(Attribute)->GetMaxDepletationValue();
-}
-
-void UAttributeComponent::UpdateAttributeCurrentValue(FName Attribute, FAttributeModifier& Mod)
-{
-	FindAttribute(Attribute)->UpdateCurrentValue(Mod);
-}
-
-void UAttributeComponent::UpdateAttributeBaseValue(FName Attribute, FAttributeModifier& Mod)
-{
-	FindAttribute(Attribute)->UpdateBaseValue(Mod);
-}
-
-void UAttributeComponent::UpdateAttributeMaxValue(FName Attribute, FAttributeModifier& Mod, float Limit)
-{
-	FindAttribute(Attribute)->UpdateMaxValue(Mod, Limit);
-}
-
-void UAttributeComponent::UpdateAttributeCurrentRegenValue(FName Attribute, FAttributeModifier& Mod)
-{
-	FindAttribute(Attribute)->UpdateCurrentRegenValue(Mod);
-}
-
-void UAttributeComponent::UpdateAttributeBaseRegenValue(FName Attribute, FAttributeModifier& Mod)
-{
-	FindAttribute(Attribute)->UpdateBaseRegenValue(Mod);
-}
-
-void UAttributeComponent::UpdateAttributeMaxRegenValue(FName Attribute, FAttributeModifier& Mod, float Limit)
-{
-	FindAttribute(Attribute)->UpdateMaxRegenValue(Mod, Limit);
-}
-
-void UAttributeComponent::UpdateAttributeCurrentDepletationValue(FName Attribute, FAttributeModifier& Mod)
-{
-	FindAttribute(Attribute)->UpdateCurrentDepletationValue(Mod);
-}
-
-void UAttributeComponent::UpdateAttributeBaseDepletationValue(FName Attribute, FAttributeModifier& Mod)
-{
-	FindAttribute(Attribute)->UpdateBaseDepletationValue(Mod);
-}
-
-void UAttributeComponent::UpdateAttributeMaxDepletationValue(FName Attribute, FAttributeModifier& Mod, float Limit)
-{
-	FindAttribute(Attribute)->UpdateMaxDepletationValue(Mod, Limit);
+	FindAttribute(Attr)->UpdateAttributePropertyValue(Value, APN, APT, Limit, bOverride);
 }
 
 void UAttributeComponent::DecreaseAttribute(float Value, FName Attribute)
@@ -145,41 +73,20 @@ void UAttributeComponent::IncreaseAttribute(float Value, FName Attribute)
 	FindAttribute(Attribute)->Increase(Value);
 }
 
-void UAttributeComponent::DecreaseAttributeOvertime(float Value, FName Attribute, float TickRate, FName SourceName)
+void UAttributeComponent::DecreaseAttributeOvertime(FName Attribute, const FOvertimeEffect& Effect)
 {
 	if (!GetWorld()) { return; }
 
-	UE_LOG(LogTemp, Warning, TEXT("DecreaseOvertime"));
-
-	if (FAttributeData* Data = FindAttribute(Attribute))
-	{
-		Data->DesiredTickRate = TickRate;
-	}
-
-	ActiveDecreasings.Add(Attribute, Value);
-
-	if (!GetWorld()->GetTimerManager().IsTimerActive(MasterTimerHandle))
-	{
-		GetWorld()->GetTimerManager().SetTimer(MasterTimerHandle, this, &UAttributeComponent::ProcessAttributeTicks, MasterTickInterval, true);
-	}
+	AddOvertimeEffect(Attribute, Effect);
 
 }
 
-void UAttributeComponent::IncreaseAttributeOvertime(float Value, FName Attribute, float TickRate, FName SourceName)
+void UAttributeComponent::IncreaseAttributeOvertime(FName Attribute, const FOvertimeEffect& Effect)
 {
-	if (!GetWorld()) return;
+	if (!GetWorld()) { return; }
 
-	if (FAttributeData* Data = FindAttribute(Attribute))
-	{
-		Data->DesiredTickRate = TickRate;
-	}
+	AddOvertimeEffect(Attribute, Effect);
 
-	ActiveIncreasings.Add(Attribute, Value);
-
-	if (!GetWorld()->GetTimerManager().IsTimerActive(MasterTimerHandle))
-	{
-		GetWorld()->GetTimerManager().SetTimer(MasterTimerHandle, this, &UAttributeComponent::ProcessAttributeTicks, MasterTickInterval, true);
-	}
 }
 
 void UAttributeComponent::ProcessAttributeTicks()
@@ -189,36 +96,60 @@ void UAttributeComponent::ProcessAttributeTicks()
 
 	for (auto& Pair : ActiveDecreasings)
 	{
-		if (FAttributeData* Data = FindAttribute(Pair.Key))
+		FName AttributeName = Pair.Key;
+		TArray<FOvertimeEffect>& Effects = Pair.Value;
+
+		if (FAttributeData* Data = FindAttribute(AttributeName))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("FoundAttribute"));
-			Data->TickAccumulator += MasterTickInterval;
-
-			if (Data->TickAccumulator >= Data->DesiredTickRate)
+			
+			for (int32 i = Effects.Num() - 1; i >= 0; --i)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("TryCallDataDecrease"));
-				Data->Decrease(Pair.Value);
-				Data->TickAccumulator -= Data->DesiredTickRate;
+				FOvertimeEffect& Effect = Effects[i];
+				Effect.Accumulator += MasterTickInterval;
+
+				if (Effect.Accumulator >= Effect.TickRate)
+				{
+					//UE_LOG(LogTemp, Warning, TEXT("Decrease: %s on %s (Value: %f)"), *Effect.SourceName.ToString(), *AttributeName.ToString(), Effect.Value);
+					Data->Decrease(Effect.Value);
+					Effect.Accumulator -= Effect.TickRate;
+				}
 			}
-
 		}
-	}
-
-	for (auto& Pair : ActiveIncreasings)
-	{
-		if (FAttributeData* Data = FindAttribute(Pair.Key))
+		else
 		{
-			Data->TickAccumulator += MasterTickInterval;
-
-			if (Data->TickAccumulator >= Data->DesiredTickRate)
-			{
-				Data->Increase(Pair.Value);
-				Data->TickAccumulator -= Data->DesiredTickRate;
-			}
+			ActiveDecreasings.Remove(AttributeName);
 		}
 	}
 
-	if (ActiveDecreasings.Num() == 0 && ActiveIncreasings.Num() == 0)
+	for (auto& AttrPair : ActiveIncreasings)
+	{
+		FName AttributeName = AttrPair.Key;
+		TArray<FOvertimeEffect>& Effects = AttrPair.Value;
+
+		if (FAttributeData* Data = FindAttribute(AttributeName))
+		{
+			for (int32 i = Effects.Num() - 1; i >= 0; --i)
+			{
+				FOvertimeEffect& Effect = Effects[i];
+				Effect.Accumulator += MasterTickInterval;
+
+				if (Effect.Accumulator >= Effect.TickRate)
+				{
+					//UE_LOG(LogTemp, Warning, TEXT("Increase: %s on %s (Value: %f)"), *Effect.SourceName.ToString(), *AttributeName.ToString(), Effect.Value);
+					Data->Increase(Effect.Value);
+					Effect.Accumulator -= Effect.TickRate;
+				}
+			}
+		}
+		else
+		{
+			// Attribute no longer exists, clean up
+			ActiveIncreasings.Remove(AttributeName);
+		}
+	}
+
+	if(ActiveIncreasings.Num() == 0 && ActiveDecreasings.Num() == 0)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(MasterTimerHandle);
 	}
@@ -232,33 +163,113 @@ void UAttributeComponent::StartAutoDepletation()
 		if (Att.bAutoDeplete)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("AutoDeplete"));
-			DecreaseAttributeOvertime(Att.CurrentDepletationValue, Att.AttributeName, Att.DepleteRate, "AutoDepletation");
+
+			FOvertimeEffect AutoDepleteEffect;
+			AutoDepleteEffect.EffectName = "AutoDeplete";
+			AutoDepleteEffect.EffectType = EOvertimeEffectType::Decrease;
+			AutoDepleteEffect.Value = Att.CurrentDepletationValue;
+			AutoDepleteEffect.TickRate = Att.DepleteRate;
+			AutoDepleteEffect.Accumulator = 0.f;
+
+			DecreaseAttributeOvertime(Att.AttributeName, AutoDepleteEffect);
+		}
+	}
+}
+
+void UAttributeComponent::StartAutoRegen()
+{
+	for (FAttributeData& Att : Attributes)
+	{
+		if (Att.bAutoRegen)
+		{
+			FOvertimeEffect AutoRegenEffect;
+			AutoRegenEffect.EffectName = "AutoRegen";
+			AutoRegenEffect.EffectType = EOvertimeEffectType::Increase;
+			AutoRegenEffect.Value = Att.CurrentRegenValue;
+			AutoRegenEffect.TickRate = Att.RegenRate;
+			AutoRegenEffect.Accumulator = 0.f;
+
+			IncreaseAttributeOvertime(Att.AttributeName, AutoRegenEffect);
 		}
 	}
 }
 
 void UAttributeComponent::StopDecreasingAttribute(FName Attribute)
 {
-	ActiveDecreasings.Remove(Attribute);
+	if (ActiveDecreasings.Remove(Attribute) > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stopped ALL depletion effects on %s"), *Attribute.ToString());
+	}
+
+	if (ActiveDecreasings.Num() == 0 && ActiveIncreasings.Num() == 0)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(MasterTimerHandle);
+	}
 }
 
 void UAttributeComponent::StopIncreasingAttribute(FName Attribute)
 {
-	ActiveIncreasings.Remove(Attribute);
+	if (ActiveIncreasings.Remove(Attribute) > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stopped ALL regeneration effects on %s"), *Attribute.ToString());
+	}
+
+	if (ActiveDecreasings.Num() == 0 && ActiveIncreasings.Num() == 0)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(MasterTimerHandle);
+	}
 }
 
-int32 UAttributeComponent::GetAttributeCurrentValueAsInt(FName Attribute)
+void UAttributeComponent::AddModifier(FName Attribute, FAttributeTempModifier Modifier)
 {
-	return FMath::RoundToInt(FindAttribute(Attribute)->GetCurrentValue());
+	FindAttribute(Attribute)->AddModifier(Modifier);
 }
 
-int32 UAttributeComponent::GetAttributeBaseValueAsInt(FName Attribute)
+void UAttributeComponent::RemoveModifier(FName Attribute, FName SourceName)
 {
-	return FMath::RoundToInt(FindAttribute(Attribute)->GetBaseValue());
+	FindAttribute(Attribute)->RemoveModifier(SourceName);
 }
 
-int32 UAttributeComponent::GetAttributeMaxValueAsInt(FName Attribute)
+void UAttributeComponent::AddOvertimeEffect(FName Attribute, const FOvertimeEffect& Effect)
 {
-	return FMath::RoundToInt(FindAttribute(Attribute)->GetMaxValue());
+	EOvertimeEffectType Type = Effect.EffectType;
+
+	switch (Type)
+	{
+	case EOvertimeEffectType::Increase:
+		ActiveIncreasings.FindOrAdd(Attribute).Add(Effect);
+		break;
+	case EOvertimeEffectType::Decrease:
+		ActiveDecreasings.FindOrAdd(Attribute).Add(Effect);
+		break;
+	default:
+		break;
+	}
+
+	if (!GetWorld()->GetTimerManager().IsTimerActive(MasterTimerHandle))
+	{
+		GetWorld()->GetTimerManager().SetTimer(MasterTimerHandle, this, &UAttributeComponent::ProcessAttributeTicks, MasterTickInterval, true);
+	}
+
 }
 
+void UAttributeComponent::RemoveOvertimeEffect(FName Attribute, FName EffectName, bool bIsDeplete)
+{
+	TMap<FName, TArray<FOvertimeEffect>>& EffectMap = bIsDeplete ? ActiveDecreasings : ActiveIncreasings;
+
+	if (TArray<FOvertimeEffect>* Effects = EffectMap.Find(Attribute))
+	{
+		Effects->RemoveAll([EffectName](const FOvertimeEffect& E) { return E.EffectName == EffectName; });
+
+		if (Effects->Num() == 0)
+		{
+			EffectMap.Remove(Attribute);
+		}
+	}
+
+	if (ActiveDecreasings.Num() == 0 && ActiveIncreasings.Num() == 0)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(MasterTimerHandle);
+	}
+
+}
