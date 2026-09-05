@@ -13,6 +13,8 @@
 
 class ACharacter;
 class AProjectileActor;
+class UAttributeComponent;
+struct FAttributeData;
 
 UCLASS(BlueprintType, Blueprintable)
 class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API UAbilityObject : public UObject
@@ -51,6 +53,7 @@ public:
 	FTimerHandle AbilityCooldownTimerHandle;
 
 	
+
 	void ApplyEffect();
 	void CreateRadialEffect();
 	void CreateBeamEffect();

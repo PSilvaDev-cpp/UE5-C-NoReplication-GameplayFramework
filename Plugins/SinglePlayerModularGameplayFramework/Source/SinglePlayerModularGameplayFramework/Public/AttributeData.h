@@ -169,7 +169,7 @@ public:
 	float GetAttributePropertyBaseValue(EAttributePropertyName APN, EAttributePropertyType APT) const;
 	float GetAttributePropertyComputedValue(EAttributePropertyName APN, EAttributePropertyType APT) const;
 
-	void UpdateAttributePropertyValue(float Value, EAttributePropertyName APN, EAttributePropertyType APT, float Limit, bool bOverride );
+	void UpdateAttributePropertyValue(float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride );
 	void Decrease(float Value);
 	void Increase(float Value);
 

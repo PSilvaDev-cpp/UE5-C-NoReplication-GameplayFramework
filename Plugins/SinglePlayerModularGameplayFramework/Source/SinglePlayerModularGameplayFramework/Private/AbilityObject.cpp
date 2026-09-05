@@ -7,6 +7,8 @@
 #include "ProjectileActor.h"
 #include "GameFramework/Character.h"
 #include "DamageInterface.h"
+//#include "AttributeComponent.h"
+
 #include "GameFramework/ProjectileMovementComponent.h" 
 
 UAbilityObject::UAbilityObject()

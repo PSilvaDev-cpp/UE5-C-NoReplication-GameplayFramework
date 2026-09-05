@@ -19,9 +19,12 @@ void UAttributeComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	for(FAttributeData& Att : Attributes)
+	for(auto& Att : Attributes)
 	{
-		Att.RecalculateModifiedProperties();
+		FName AttName = Att.Key;
+		FAttributeData& AttData = Att.Value;
+
+		AttData.RecalculateModifiedProperties();
 	}
 	StartAutoDepletation();
 	StartAutoRegen();
@@ -38,14 +41,7 @@ void UAttributeComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 FAttributeData* UAttributeComponent::FindAttribute(FName Attribute)
 {
-	for (FAttributeData& Att : Attributes)
-	{
-		if (Att.AttributeName == Attribute)
-		{
-			return &Att;
-		}
-	}
-	return nullptr;
+	return Attributes.Find(Attribute);
 }
 
 float UAttributeComponent::GetAttributePropertyBaseValue(FName Attr, EAttributePropertyName APN, EAttributePropertyType APT)
@@ -58,9 +54,9 @@ float UAttributeComponent::GetAttributePropertyComputedValue(FName Attr, EAttrib
 	return FindAttribute(Attr)->GetAttributePropertyComputedValue(APN, APT);
 }
 
-void UAttributeComponent::UpdateAttributePropertyValue(FName Attr, float Value, float Limit, bool bOverride, EAttributePropertyName APN, EAttributePropertyType APT)
+void UAttributeComponent::UpdateAttributePropertyValue(FName Attr, float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride)
 {
-	FindAttribute(Attr)->UpdateAttributePropertyValue(Value, APN, APT, Limit, bOverride);
+	FindAttribute(Attr)->UpdateAttributePropertyValue(Value, APN, APT, bOverride);
 }
 
 void UAttributeComponent::DecreaseAttribute(float Value, FName Attribute)
@@ -94,6 +90,8 @@ void UAttributeComponent::ProcessAttributeTicks()
 
 	UE_LOG(LogTemp, Warning, TEXT("ProcessTick"));
 
+	TArray<FName> DecreasingAttributesToRemove;
+
 	for (auto& Pair : ActiveDecreasings)
 	{
 		FName AttributeName = Pair.Key;
@@ -118,9 +116,16 @@ void UAttributeComponent::ProcessAttributeTicks()
 		}
 		else
 		{
-			ActiveDecreasings.Remove(AttributeName);
+			DecreasingAttributesToRemove.Add(AttributeName);
 		}
 	}
+
+	for (FName AttributeName : DecreasingAttributesToRemove)
+	{
+		ActiveDecreasings.Remove(AttributeName);
+	}
+
+	TArray<FName> IncreasingAttributesToRemove;
 
 	for (auto& AttrPair : ActiveIncreasings)
 	{
@@ -144,9 +149,16 @@ void UAttributeComponent::ProcessAttributeTicks()
 		}
 		else
 		{
-			// Attribute no longer exists, clean up
-			ActiveIncreasings.Remove(AttributeName);
+			
+			
+			IncreasingAttributesToRemove.Add(AttributeName);
 		}
+	}
+
+	for (FName AttributeName : IncreasingAttributesToRemove)
+	{
+		// Attribute no longer exists, clean up
+		ActiveIncreasings.Remove(AttributeName);
 	}
 
 	if(ActiveIncreasings.Num() == 0 && ActiveDecreasings.Num() == 0)
@@ -158,38 +170,44 @@ void UAttributeComponent::ProcessAttributeTicks()
 
 void UAttributeComponent::StartAutoDepletation()
 {
-	for (FAttributeData& Att : Attributes)
+	for (auto& Att : Attributes)
 	{
-		if (Att.bAutoDeplete)
+		FName AttName = Att.Key;
+		FAttributeData& AttData = Att.Value;
+
+		if (AttData.bAutoDeplete)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("AutoDeplete"));
 
 			FOvertimeEffect AutoDepleteEffect;
 			AutoDepleteEffect.EffectName = "AutoDeplete";
 			AutoDepleteEffect.EffectType = EOvertimeEffectType::Decrease;
-			AutoDepleteEffect.Value = Att.CurrentDepletationValue;
-			AutoDepleteEffect.TickRate = Att.DepleteRate;
+			AutoDepleteEffect.Value = AttData.CurrentDepletationValue;
+			AutoDepleteEffect.TickRate = AttData.DepleteRate;
 			AutoDepleteEffect.Accumulator = 0.f;
 
-			DecreaseAttributeOvertime(Att.AttributeName, AutoDepleteEffect);
+			DecreaseAttributeOvertime(AttData.AttributeName, AutoDepleteEffect);
 		}
 	}
 }
 
 void UAttributeComponent::StartAutoRegen()
 {
-	for (FAttributeData& Att : Attributes)
+	for (auto& Att : Attributes)
 	{
-		if (Att.bAutoRegen)
+		FName AttName = Att.Key;
+		FAttributeData& AttData = Att.Value;
+
+		if (AttData.bAutoRegen)
 		{
 			FOvertimeEffect AutoRegenEffect;
 			AutoRegenEffect.EffectName = "AutoRegen";
 			AutoRegenEffect.EffectType = EOvertimeEffectType::Increase;
-			AutoRegenEffect.Value = Att.CurrentRegenValue;
-			AutoRegenEffect.TickRate = Att.RegenRate;
+			AutoRegenEffect.Value = AttData.CurrentRegenValue;
+			AutoRegenEffect.TickRate = AttData.RegenRate;
 			AutoRegenEffect.Accumulator = 0.f;
 
-			IncreaseAttributeOvertime(Att.AttributeName, AutoRegenEffect);
+			IncreaseAttributeOvertime(AttData.AttributeName, AutoRegenEffect);
 		}
 	}
 }

@@ -5,12 +5,15 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AttributeComponent.h"
+#include "AbilityComponent.h"
+#include "DamageInterface.h"
+#include "AttributeInterface.h"
 #include "MainCharacter.generated.h"
 
 class UAttributeComponent;
 
 UCLASS()
-class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API AMainCharacter : public ACharacter
+class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API AMainCharacter : public ACharacter, public IDamageInterface, public IAttributeInterface
 {
 	GENERATED_BODY()
 
@@ -29,5 +32,15 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	/*
+	virtual bool CheckAttribute_Implementation(FName AttributeName) override;
+
+	virtual float GetAttributePropertyValue_Implementation(FName AttributeName, EAttributePropertyName ATN, EAttributePropertyType APT) override;
+
+	virtual void UpdateAttributePropertyValue_Implementation(FName AttributeName, float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride) override;
+	*/
+
+	UAttributeComponent* AttributeComponentREF;
+	UAbilityComponent* AbilityComponentREF;
 
 };

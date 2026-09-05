@@ -16,6 +16,16 @@ void AMainCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (FindComponentByClass<UAttributeComponent>())
+	{
+		AttributeComponentREF = FindComponentByClass<UAttributeComponent>();
+	}
+
+	if (FindComponentByClass<UAbilityComponent>())
+	{
+		AbilityComponentREF = FindComponentByClass<UAbilityComponent>();
+	}
+
 }
 
 // Called every frame
@@ -32,3 +42,21 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 }
 
+/*
+bool AMainCharacter::CheckAttribute_Implementation(FName AttributeName)
+{
+	if (!this || !AttributeComponentREF) { return false; }
+
+	if (!AttributeComponentREF->FindAttribute(AttributeName)) { return false; }
+
+	return true;
+}
+
+float AMainCharacter::GetAttributePropertyValue_Implementation(FName AttributeName, EAttributePropertyName APN, EAttributePropertyType APT)
+{
+	if (!this || CheckAttribute_Implementation(AttributeName)) { return NULL; }
+
+	
+
+}
+*/

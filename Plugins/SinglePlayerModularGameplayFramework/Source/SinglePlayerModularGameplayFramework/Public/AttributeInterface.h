@@ -29,6 +29,11 @@ public:
 	bool CheckAttribute(FName AttributeName);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Attribute")
+	float GetAttributePropertyValue(FName AttributeName, EAttributePropertyName APN, EAttributePropertyType APT);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Attribute")
 	void UpdateAttributePropertyValue(FName AttributeName, float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride);
+
+	virtual AActor* GetOwnerActor();
 
 };

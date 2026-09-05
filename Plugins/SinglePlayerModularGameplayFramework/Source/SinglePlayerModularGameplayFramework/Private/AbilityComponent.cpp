@@ -2,6 +2,10 @@
 
 
 #include "AbilityComponent.h"
+#include "GameFramework/Character.h"
+#include "AttributeInterface.h"
+//#include "AttributeComponent.h"
+//#include "AttributeData.h"
 
 // Sets default values for this component's properties
 UAbilityComponent::UAbilityComponent()
@@ -49,6 +53,8 @@ void UAbilityComponent::CallAbility(FName AbilityName)
 {
 	if (!FindAbility(AbilityName)) { UE_LOG(LogTemp, Error, TEXT("Ability NOT found"));  return; }
 
+	if (!VerifyCanCastAbility(FindAbility(AbilityName))) { UE_LOG(LogTemp, Warning, TEXT("Cant Cast Ability")); return; }
+
 	UAbilityObject* Ability = FindAbility(AbilityName);
 	FAbilityData Data = Ability->AbilityData;
 
@@ -67,14 +73,41 @@ void UAbilityComponent::CallAbility(FName AbilityName)
 
 		AddOvertimeAbilityEffect(AbilityName, OvertimeAbility);
 	}
+}
 
-	FCooldown AbilityCD;
-	AbilityCD.SourceName = AbilityName;
-	AbilityCD.CooldownTime = Data.Cooldown;
-	AbilityCD.Accumulator = 0.f;
+bool UAbilityComponent::VerifyCanCastAbility(UAbilityObject* Ability)
+{
+	if (!Ability || !OwnerCharacter) { return false; }
 
-	StartCooldown(AbilityName, AbilityCD);
+	FAbilityData Data = Ability->AbilityData;
+	FName AttributeName = Data.VinculatedAttribute;
+	float Cost = Data.AttributeCost;
 	
+
+	if (Ability->bIsInCooldown)
+	{
+		bCanCastAbility = false;
+		return false;
+	}
+
+	if (Data.AttributeCost > 0.f && OwnerCharacter->GetClass()->ImplementsInterface(UAttributeInterface::StaticClass()))
+	{
+		
+		if (!IAttributeInterface::Execute_CheckAttribute(OwnerCharacter, AttributeName))
+		{
+			bCanCastAbility = false;
+			return false;
+		}
+
+		float AttributeCurrentValue = IAttributeInterface::Execute_GetAttributePropertyValue(OwnerCharacter, AttributeName, EAttributePropertyName::Default, EAttributePropertyType::Current);
+		if (AttributeCurrentValue < Cost)
+		{
+			bCanCastAbility = false;
+			return false;
+		}
+	}
+	bCanCastAbility = true;
+	return true;
 }
 
 
@@ -113,6 +146,30 @@ void UAbilityComponent::CastAbility(FName AbilityName)
 			break;
 	}	
 
+	FName AttributeName = Data.VinculatedAttribute;
+	float Cost = Data.AttributeCost;
+
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+	if (Data.AttributeCost > 0.f && OwnerCharacter->GetClass()->ImplementsInterface(UAttributeInterface::StaticClass()))
+	{
+		if (IAttributeInterface::Execute_CheckAttribute(OwnerCharacter, AttributeName))
+		{
+			IAttributeInterface::Execute_UpdateAttributePropertyValue(OwnerCharacter, AttributeName, Cost,
+				EAttributePropertyName::Default, EAttributePropertyType::Current, false);
+		}
+	}
+		
+	FCooldown AbilityCD;
+	AbilityCD.SourceName = AbilityName;
+	AbilityCD.CooldownTime = Data.Cooldown;
+	AbilityCD.Accumulator = 0.f;
+
+	StartCooldown(AbilityName, AbilityCD);
+		
+	
 }
 
 void UAbilityComponent::AddOvertimeAbilityEffect(FName AbilityName, const FOvertimeAbility& OverTimeAbility)
@@ -177,11 +234,15 @@ void UAbilityComponent::ProcessOvertimeAbilitiesTicks()
 
 void UAbilityComponent::StartCooldown(FName AbilityName, const FCooldown& CD)
 {
-	ActiveCooldowns.FindOrAdd(AbilityName, CD);
-
-	if (!GetWorld()->GetTimerManager().IsTimerActive(MasterCooldownTimerHandle))
+	if (UAbilityObject* Ability = FindAbility(AbilityName))
 	{
-		GetWorld()->GetTimerManager().SetTimer(MasterCooldownTimerHandle, this, &UAbilityComponent::ProcessCooldownTick, MasterTickInterval, true);
+		ActiveCooldowns.FindOrAdd(AbilityName, CD);
+		Ability->bIsInCooldown = true;
+
+		if (!GetWorld()->GetTimerManager().IsTimerActive(MasterCooldownTimerHandle))
+		{
+			GetWorld()->GetTimerManager().SetTimer(MasterCooldownTimerHandle, this, &UAbilityComponent::ProcessCooldownTick, MasterTickInterval, true);
+		}
 	}
 
 }
