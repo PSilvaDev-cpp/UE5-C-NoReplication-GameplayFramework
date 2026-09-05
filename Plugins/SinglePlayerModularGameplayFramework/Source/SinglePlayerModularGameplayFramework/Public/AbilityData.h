@@ -18,6 +18,8 @@ enum class EAbilityEffectType :uint8
 	Projectile UMETA(DisplayName = "Projectile")
 };
 
+
+
 USTRUCT(BlueprintType, Blueprintable)
 struct FAbilityData
 {
@@ -27,6 +29,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
 	float AttributeCost = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	FName VinculatedAttribute = "None";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
 	float Cooldown = 5.f;

@@ -44,6 +44,9 @@ struct FCooldown
 	float Accumulator = 0.f;
 };
 
+//class UAttributeComponent;
+//struct UAttributeData;
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API UAbilityComponent : public UActorComponent
 {
@@ -63,6 +66,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
 	TMap<FName, UAbilityObject*> AbilityContainer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
+	ACharacter* OwnerCharacter;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
+	bool bCanCastAbility;
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities")
+	bool VerifyCanCastAbility(UAbilityObject* Ability);
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	UAbilityObject* FindAbility(FName AbilityName);
@@ -90,5 +102,7 @@ public:
 
 	AActor* Target;
 	FVector SpawnLocation;
+
+
 
 };

@@ -7,6 +7,8 @@
 #include "ProjectileActor.h"
 #include "GameFramework/Character.h"
 #include "DamageInterface.h"
+#include "AttributeComponent.h"
+
 #include "GameFramework/ProjectileMovementComponent.h" 
 
 UAbilityObject::UAbilityObject()
@@ -206,5 +208,13 @@ void UAbilityObject::ApplyEffect()
 			}
 		}
 
+	}
+}
+
+void UAbilityObject::UpdateAttribute(FName AttributeName, float Value,  UAttributeComponent* AttributeComponent, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride)
+{
+	if (FAttributeData* AttData = AttributeComponent->FindAttribute(AttributeName))
+	{	
+		AttData->UpdateAttributePropertyValue(Value, APN, APT, bOverride);
 	}
 }

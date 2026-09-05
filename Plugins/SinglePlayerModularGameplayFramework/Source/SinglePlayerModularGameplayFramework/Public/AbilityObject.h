@@ -13,6 +13,8 @@
 
 class ACharacter;
 class AProjectileActor;
+class UAttributeComponent;
+struct FAttributeData;
 
 UCLASS(BlueprintType, Blueprintable)
 class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API UAbilityObject : public UObject
@@ -50,7 +52,10 @@ public:
 	FTimerHandle AbilityEffectTimerHandle;
 	FTimerHandle AbilityCooldownTimerHandle;
 
-	
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void UpdateAttribute(FName AttributeName, float Value, UAttributeComponent* AttributeComponent, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride);
+
+
 	void ApplyEffect();
 	void CreateRadialEffect();
 	void CreateBeamEffect();

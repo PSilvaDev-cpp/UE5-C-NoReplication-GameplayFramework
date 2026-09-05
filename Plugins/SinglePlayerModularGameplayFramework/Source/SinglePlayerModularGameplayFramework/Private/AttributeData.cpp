@@ -118,13 +118,13 @@ void FAttributeData::SetComputedValue(EAttributePropertyName APN, EAttributeProp
 		switch (APT)
 		{
 		case EAttributePropertyType::Current:
-			ComputedCurrentValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue: MaxBase);
+			ComputedCurrentValue = FMath::Max(0.f, Value);
 			break;
 		case EAttributePropertyType::Base:
-			ComputedBaseValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue : MaxBase);
+			ComputedBaseValue = FMath::Max(0.f, Value);
 			break;
 		case EAttributePropertyType::Max:
-			ComputedMaxValue = FMath::Clamp(Value, 0.f, ComputedMaxValue > 0.f ? ComputedMaxValue : MaxBase);
+			ComputedMaxValue = FMath::Max(0.f, Value);
 			break;
 		default:
 			break;
@@ -169,12 +169,12 @@ void FAttributeData::SetComputedValue(EAttributePropertyName APN, EAttributeProp
 
 void FAttributeData::Decrease(float Value)
 {
-	UpdateAttributePropertyValue(-Value, EAttributePropertyName::Default, EAttributePropertyType::Current, MaxValue, false);
+	UpdateAttributePropertyValue(-Value, EAttributePropertyName::Default, EAttributePropertyType::Current, false);
 }
 
 void FAttributeData::Increase(float Value)
 {
-	UpdateAttributePropertyValue(Value, EAttributePropertyName::Default, EAttributePropertyType::Current, MaxValue, false);
+	UpdateAttributePropertyValue(Value, EAttributePropertyName::Default, EAttributePropertyType::Current, false);
 }
 
 void FAttributeData::AddModifier(FAttributeTempModifier& Modifier)
@@ -208,7 +208,7 @@ void FAttributeData::UpdateModifiers(float DeltaTime)
 }
 */
 
-void FAttributeData::UpdateAttributePropertyValue(float Value, EAttributePropertyName APN, EAttributePropertyType APT, float Limit, bool bOverride)
+void FAttributeData::UpdateAttributePropertyValue(float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride)
 {
 	switch (APN)
 	{
@@ -225,7 +225,7 @@ void FAttributeData::UpdateAttributePropertyValue(float Value, EAttributePropert
 			break;
 		case EAttributePropertyType::Max:
 			if (bOverride) { MaxValue = Value; break; }
-			MaxValue = FMath::Clamp(MaxValue + Value, 0.f, Limit);
+			MaxValue = FMath::Max(0.f, MaxValue + Value);
 			break;
 		default:
 			break;
@@ -244,7 +244,7 @@ void FAttributeData::UpdateAttributePropertyValue(float Value, EAttributePropert
 			break;
 		case EAttributePropertyType::Max:
 			if (bOverride) { MaxRegenValue = Value; break; }
-			MaxRegenValue = FMath::Clamp(MaxRegenValue + Value, 0.f, Limit);
+			MaxRegenValue = FMath::Max(0.f, MaxRegenValue + Value);
 			break;
 		default:
 			break;
@@ -263,7 +263,7 @@ void FAttributeData::UpdateAttributePropertyValue(float Value, EAttributePropert
 			break;
 		case EAttributePropertyType::Max:
 			if (bOverride) { MaxDepletationValue = Value; break; }
-			MaxDepletationValue = FMath::Clamp(MaxDepletationValue + Value, 0.f, Limit);
+			MaxDepletationValue = FMath::Max(0.f, MaxDepletationValue + Value);
 			break;
 		default:
 			break;
@@ -287,9 +287,9 @@ void FAttributeData::RecalculateModifiedProperties()
 
 	const TArray<EAttributePropertyType> PropertyTypes =
 	{
-		EAttributePropertyType::Current,
+		EAttributePropertyType::Max,
 		EAttributePropertyType::Base,
-		EAttributePropertyType::Max
+		EAttributePropertyType::Current
 	};
 
 	for (EAttributePropertyName APN : PropertyNames)
@@ -306,7 +306,7 @@ void FAttributeData::RecalculateModifiedProperties()
 float FAttributeData::CalculateModifiedValue(EAttributePropertyName APN, EAttributePropertyType APT, float NewBaseValue) const
 {
 	float AdditiveSum = 0.f;
-	float MultiplicativeProduct = 1.0f;
+	float MultiplierSum = 0.f;
 	float OverrideValue = NewBaseValue;
 	bool bHasOverride = false;
 
@@ -322,7 +322,7 @@ float FAttributeData::CalculateModifiedValue(EAttributePropertyName APN, EAttrib
 				AdditiveSum += OpValue;
 				break;
 			case EModifierOp::Multiply:
-				MultiplicativeProduct *= OpValue;
+				MultiplierSum += OpValue;
 				break;
 			case EModifierOp::Override:
 				OverrideValue = OpValue;
@@ -333,7 +333,8 @@ float FAttributeData::CalculateModifiedValue(EAttributePropertyName APN, EAttrib
 	}
 
 	float Result = bHasOverride ? OverrideValue : NewBaseValue;
-	Result = (Result + AdditiveSum) * MultiplicativeProduct;
+	float FinalMultiplier = FMath::Max(0.f, 1.f + MultiplierSum);
+	Result = (Result + AdditiveSum) * FinalMultiplier;
 
 	return Result;
 }

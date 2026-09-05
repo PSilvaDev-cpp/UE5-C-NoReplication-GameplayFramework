@@ -57,7 +57,7 @@ public:
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
-	TArray<FAttributeData> Attributes;
+	TMap<FName, FAttributeData> Attributes;
 
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
@@ -67,7 +67,7 @@ public:
 	float GetAttributePropertyComputedValue(FName Attr, EAttributePropertyName APN, EAttributePropertyType APT);
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void UpdateAttributePropertyValue(FName Attr, float Value, float Limit, bool bOverride, EAttributePropertyName APN, EAttributePropertyType APT);
+	void UpdateAttributePropertyValue(FName Attr, float Value, bool bOverride, EAttributePropertyName APN, EAttributePropertyType APT);
 	
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void DecreaseAttributeOvertime(FName Attribute, const FOvertimeEffect& Effect);
@@ -105,6 +105,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void RemoveOvertimeEffect(FName Attribute, FName EffectName, bool bIsDeplete);
 
+	//UFUNCTION(BlueprintCallable, Category = "Attributes")
+	FAttributeData* FindAttribute(FName Attribute);
+
 	protected:
 
 	FTimerHandle MasterTimerHandle;
@@ -115,7 +118,6 @@ public:
 	TMap<FName,TArray<FOvertimeEffect>> ActiveDecreasings;
 	TMap<FName, TArray<FOvertimeEffect>> ActiveIncreasings;
 
-	FAttributeData* FindAttribute(FName Attribute);
 
 	void ProcessAttributeTicks();
 

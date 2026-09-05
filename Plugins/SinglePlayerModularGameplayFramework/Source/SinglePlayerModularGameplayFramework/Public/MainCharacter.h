@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AttributeComponent.h"
+#include "AbilityComponent.h"
 #include "MainCharacter.generated.h"
 
 class UAttributeComponent;
@@ -28,6 +29,7 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
 
 
 };
