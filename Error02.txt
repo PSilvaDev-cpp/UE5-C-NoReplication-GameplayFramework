@@ -1,0 +1,13 @@
+O comando ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" SPMGFEditor Win64 Development -Project="C:\UEProjects\SPMGF\SPMGF.uproject" -WaitMutex -FromMsBuild -architecture=x64" foi encerrado com o código 6.
+Blueprint implementable interfaces cannot contain BlueprintCallable functions that are not BlueprintImplementableEvents. Add NotBlueprintable to the interface if you wish to keep this function.
+Missing UFunction implementation of function 'GetAttributePropertyValue' from interface 'IAttributeInterface'.  This function needs a UFUNCTION() declaration.
+Missing UFunction implementation of function 'UpdateAttributePropertyValue' from interface 'IAttributeInterface'.  This function needs a UFUNCTION() declaration.
+Blueprint implementable interfaces cannot contain BlueprintCallable functions that are not BlueprintImplementableEvents. Add NotBlueprintable to the interface if you wish to keep this function.
+Blueprint implementable interfaces cannot contain BlueprintCallable functions that are not BlueprintImplementableEvents. Add NotBlueprintable to the interface if you wish to keep this function.
+Interface functions that are not BlueprintImplementableEvents must be declared 'virtual'
+Interface functions cannot be declared 'final'
+Interface functions that are not BlueprintImplementableEvents must be declared 'virtual'
+Interface functions cannot be declared 'final'
+Interface functions that are not BlueprintImplementableEvents must be declared 'virtual'
+Interface functions cannot be declared 'final'
+Missing UFunction implementation of function 'CheckAttribute' from interface 'IAttributeInterface'.  This function needs a UFUNCTION() declaration.

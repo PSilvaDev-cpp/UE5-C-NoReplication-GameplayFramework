@@ -15,10 +15,34 @@ enum class EAbilityEffectType :uint8
 {
 	Radial UMETA(DisplayName = "Radial"),
 	Beam UMETA(DisplayName = "Beam"),
-	Projectile UMETA(DisplayName = "Projectile")
+	Projectile UMETA(DisplayName = "Projectile"),
+	InnerTarget UMETA(DisplayName = "InnerTarget"),
+	Aura UMETA(DisplayName = "Aura")
 };
 
+USTRUCT(BlueprintType, Blueprintable)
+struct FAuraData
+{
+	GENERATED_BODY()
 
+public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	float AuraRadius = 500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	bool bPermanent = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	float Duration = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	float TickRate = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	float Accumulator = 0.f;
+
+};
 
 USTRUCT(BlueprintType, Blueprintable)
 struct FAbilityData
@@ -29,6 +53,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
 	float AttributeCost = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	FAuraData Aura;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
 	FName VinculatedAttribute = "None";

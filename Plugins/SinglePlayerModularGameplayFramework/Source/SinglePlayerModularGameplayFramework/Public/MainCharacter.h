@@ -8,6 +8,8 @@
 #include "AbilityComponent.h"
 #include "DamageInterface.h"
 #include "AttributeInterface.h"
+#include "Components/SphereComponent.h"
+
 #include "MainCharacter.generated.h"
 
 class UAttributeComponent;
@@ -32,15 +34,34 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	/*
-	virtual bool CheckAttribute_Implementation(FName AttributeName) override;
+	UFUNCTION(BlueprintCallable, Category = "AttributeInterface")
+	virtual bool CheckAttribute(FName AttributeName) override;
 
-	virtual float GetAttributePropertyValue_Implementation(FName AttributeName, EAttributePropertyName ATN, EAttributePropertyType APT) override;
+	UFUNCTION(BlueprintCallable, Category = "AttributeInterface")
+	virtual float GetAttributePropertyValue(FName AttributeName, EAttributePropertyName ATN, EAttributePropertyType APT) override;
 
-	virtual void UpdateAttributePropertyValue_Implementation(FName AttributeName, float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride) override;
-	*/
+	UFUNCTION(BlueprintCallable, Category = "AttributeInterface")
+	virtual void UpdateAttributePropertyValue(FName AttributeName, float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride) override;
+	
 
 	UAttributeComponent* AttributeComponentREF;
 	UAbilityComponent* AbilityComponentREF;
+
+	TMap<FName, USphereComponent*> AurasSpheres;
+
+	void UpdateAuras();
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities")
+	void AddAura(FName AuraName, FAuraData Aura);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities")
+	void RemoveAura(FName AuraName);
+
+	
+
+	TMap<FName, FAuraData> ActiveAuras;
+	void ProcessAurasTick();
+	FTimerHandle AurasMasterTimerHandle;
+	const float MasterTickInterval = 0.1f;
 
 };

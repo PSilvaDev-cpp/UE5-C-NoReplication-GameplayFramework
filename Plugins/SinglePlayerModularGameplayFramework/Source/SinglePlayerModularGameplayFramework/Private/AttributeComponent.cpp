@@ -46,27 +46,45 @@ FAttributeData* UAttributeComponent::FindAttribute(FName Attribute)
 
 float UAttributeComponent::GetAttributePropertyBaseValue(FName Attr, EAttributePropertyName APN, EAttributePropertyType APT)
 {
-	return FindAttribute(Attr)->GetAttributePropertyBaseValue(APN, APT);
+	if (FAttributeData* Data = FindAttribute(Attr))
+	{
+		return Data->GetAttributePropertyBaseValue(APN, APT);
+	}
+	return -1.f;
+	
 }
 
 float UAttributeComponent::GetAttributePropertyComputedValue(FName Attr, EAttributePropertyName APN, EAttributePropertyType APT)
 {
-	return FindAttribute(Attr)->GetAttributePropertyComputedValue(APN, APT);
+	if (FAttributeData* Data = FindAttribute(Attr))
+	{
+		return Data->GetAttributePropertyComputedValue(APN, APT);
+	}
+	return -1.f;
 }
 
 void UAttributeComponent::UpdateAttributePropertyValue(FName Attr, float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride)
 {
-	FindAttribute(Attr)->UpdateAttributePropertyValue(Value, APN, APT, bOverride);
+	if (FAttributeData* Data = FindAttribute(Attr))
+	{
+		Data->UpdateAttributePropertyValue(Value, APN, APT, bOverride);
+	}
 }
 
 void UAttributeComponent::DecreaseAttribute(float Value, FName Attribute)
 {
-	FindAttribute(Attribute)->Decrease(Value);
+	if (FAttributeData* Data = FindAttribute(Attribute))
+	{
+		Data->Decrease(Value);
+	}
 }
 
 void UAttributeComponent::IncreaseAttribute(float Value, FName Attribute)
 {
-	FindAttribute(Attribute)->Increase(Value);
+	if (FAttributeData* Data = FindAttribute(Attribute))
+	{
+		Data->Increase(Value);
+	}
 }
 
 void UAttributeComponent::DecreaseAttributeOvertime(FName Attribute, const FOvertimeEffect& Effect)

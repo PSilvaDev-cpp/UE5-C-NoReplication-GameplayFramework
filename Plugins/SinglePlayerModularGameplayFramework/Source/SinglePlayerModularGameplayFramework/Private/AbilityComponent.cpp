@@ -4,6 +4,7 @@
 #include "AbilityComponent.h"
 #include "GameFramework/Character.h"
 #include "AttributeInterface.h"
+#include "MainCharacter.h"
 //#include "AttributeComponent.h"
 //#include "AttributeData.h"
 
@@ -24,6 +25,7 @@ void UAbilityComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
+	UpdateAbilityContainer();
 	
 }
 
@@ -36,10 +38,30 @@ void UAbilityComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 	// ...
 }
 
+void UAbilityComponent::UpdateAbilityContainer()
+{
+	for (auto& SubAbility : Abilities)
+	{
+		if (SubAbility.Value)
+		{
+			UAbilityObject* Ability = NewObject<UAbilityObject>(this, SubAbility.Value);
+			
+			if (Ability)
+			{
+				Ability->OwnerComponent = this;
+				Ability->OwnerCharacter = OwnerCharacter;
+				AbilityContainer.FindOrAdd(SubAbility.Key, Ability);
+			}
+		}
+	}
+}
+
 UAbilityObject* UAbilityComponent::FindAbility(FName AbilityName)
 {
 	if(AbilityContainer.Contains(AbilityName))
 	{
+		AbilityContainer[AbilityName]->OwnerComponent = this;
+		AbilityContainer[AbilityName]->OwnerCharacter = OwnerCharacter;
 		return AbilityContainer[AbilityName];
 	}
 	else
@@ -51,12 +73,25 @@ UAbilityObject* UAbilityComponent::FindAbility(FName AbilityName)
 
 void UAbilityComponent::CallAbility(FName AbilityName)
 {
+	if (!this || !OwnerCharacter) { UE_LOG(LogTemp, Error, TEXT("AbilityComponent OR OwnerCharacter NOT Valid")); return; }
+
 	if (!FindAbility(AbilityName)) { UE_LOG(LogTemp, Error, TEXT("Ability NOT found"));  return; }
 
 	if (!VerifyCanCastAbility(FindAbility(AbilityName))) { UE_LOG(LogTemp, Warning, TEXT("Cant Cast Ability")); return; }
 
+
 	UAbilityObject* Ability = FindAbility(AbilityName);
 	FAbilityData Data = Ability->AbilityData;
+
+	if (!Data.bInstant)
+	{
+		if (Data.AbilityTickRate <= 0.f)
+		{
+			UE_LOG(LogTemp, Error, TEXT("TickRate não pode ser <= 0 em Overtime."));
+			return;
+		}
+		// ... restante do código Overtime ...
+	}
 
 	if(Data.bInstant)
 	{
@@ -92,14 +127,14 @@ bool UAbilityComponent::VerifyCanCastAbility(UAbilityObject* Ability)
 
 	if (Data.AttributeCost > 0.f && OwnerCharacter->GetClass()->ImplementsInterface(UAttributeInterface::StaticClass()))
 	{
-		
-		if (!IAttributeInterface::Execute_CheckAttribute(OwnerCharacter, AttributeName))
+		if (!OwnerCharacter->CheckAttribute(AttributeName))
 		{
 			bCanCastAbility = false;
 			return false;
 		}
 
-		float AttributeCurrentValue = IAttributeInterface::Execute_GetAttributePropertyValue(OwnerCharacter, AttributeName, EAttributePropertyName::Default, EAttributePropertyType::Current);
+		float AttributeCurrentValue = OwnerCharacter->GetAttributePropertyValue(AttributeName, EAttributePropertyName::Default, EAttributePropertyType::Current);
+
 		if (AttributeCurrentValue < Cost)
 		{
 			bCanCastAbility = false;
@@ -115,22 +150,29 @@ void UAbilityComponent::CastAbility(FName AbilityName)
 {
 	if (!FindAbility(AbilityName)) { UE_LOG(LogTemp, Error, TEXT("Ability NOT found"));  return; }
 
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+
 	UAbilityObject* Ability = AbilityContainer[AbilityName];
 	FAbilityData Data = Ability->AbilityData;
+
+	if (Data.bSelfOrigin)
+	{
+		SpawnLocation = GetOwner()->GetActorLocation();
+	}
 
 	Ability->DesiredSpawnLocation = SpawnLocation;
 	Ability->Target = Target;
 
+	FName AttributeName = Data.VinculatedAttribute;
+	float Cost = Data.AttributeCost;
 
 	if(Data.bNeedTarget && Target == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Ability %s requires a target but none was provided."), *AbilityName.ToString());
 		return;
-	}
-
-	if (Data.bSelfOrigin)
-	{
-		SpawnLocation = GetOwner()->GetActorLocation();
 	}
 
 	switch (Data.AbilityEffectType)
@@ -144,20 +186,24 @@ void UAbilityComponent::CastAbility(FName AbilityName)
 		case EAbilityEffectType::Projectile:
 			Ability->LaunchProjectile();
 			break;
+		case EAbilityEffectType::InnerTarget:
+			Ability->ApplyEffect();
+			break;
+		case EAbilityEffectType::Aura:
+			Ability->CreateAura(AbilityName);
+			break;
+
 	}	
 
-	FName AttributeName = Data.VinculatedAttribute;
-	float Cost = Data.AttributeCost;
 
-	if (!OwnerCharacter)
-	{
-		return;
-	}
+
+
+
 	if (Data.AttributeCost > 0.f && OwnerCharacter->GetClass()->ImplementsInterface(UAttributeInterface::StaticClass()))
 	{
-		if (IAttributeInterface::Execute_CheckAttribute(OwnerCharacter, AttributeName))
+		if (OwnerCharacter->CheckAttribute(AttributeName))
 		{
-			IAttributeInterface::Execute_UpdateAttributePropertyValue(OwnerCharacter, AttributeName, Cost,
+				OwnerCharacter->UpdateAttributePropertyValue(AttributeName, -Cost,
 				EAttributePropertyName::Default, EAttributePropertyType::Current, false);
 		}
 	}
@@ -169,7 +215,6 @@ void UAbilityComponent::CastAbility(FName AbilityName)
 
 	StartCooldown(AbilityName, AbilityCD);
 		
-	
 }
 
 void UAbilityComponent::AddOvertimeAbilityEffect(FName AbilityName, const FOvertimeAbility& OverTimeAbility)
@@ -286,3 +331,4 @@ void UAbilityComponent::ProcessCooldownTick()
 		EndCooldown(NameToFinish);
 	}
 }
+

@@ -7,6 +7,9 @@
 #include "ProjectileActor.h"
 #include "GameFramework/Character.h"
 #include "DamageInterface.h"
+#include "DrawDebugHelpers.h"
+#include "MainCharacter.h"
+#include "Engine/OverlapResult.h"
 //#include "AttributeComponent.h"
 
 #include "GameFramework/ProjectileMovementComponent.h" 
@@ -22,9 +25,11 @@ UAbilityObject::UAbilityObject()
 
 void UAbilityObject::CreateRadialEffect()
 {
-	
-	if (!OwnerComponent) {return;}
-
+	if (!OwnerComponent || !OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("CreateRadialEffect interrupted -> OwnerComponent OR OwnerCharacter NOT Valid"))
+			return;
+	}
 
 	ECollisionChannel TraceChannel = ECC_AbilityTrace;
 
@@ -34,11 +39,11 @@ void UAbilityObject::CreateRadialEffect()
 		Params.AddIgnoredActor(OwnerCharacter);
 	}
 
-	TArray<FHitResult> HitResults;
+	TArray<FOverlapResult> OverlapResults;
+	Targets.Empty();
 
-	bool bHit = GetWorld()->SweepMultiByChannel(
-		HitResults,
-		DesiredSpawnLocation,
+	bool bHit = GetWorld()->OverlapMultiByChannel(
+		OverlapResults,
 		DesiredSpawnLocation,
 		FQuat::Identity,
 		TraceChannel,
@@ -48,11 +53,9 @@ void UAbilityObject::CreateRadialEffect()
 
 	if (bHit)
 	{
-
-
-		for (const FHitResult& Hit : HitResults)
+		for (const FOverlapResult& Overlap : OverlapResults)
 		{
-			AActor* HitActor = Hit.GetActor();
+			AActor* HitActor = Overlap.GetActor();
 
 			if (HitActor)
 			{
@@ -65,14 +68,14 @@ void UAbilityObject::CreateRadialEffect()
 					if (AbilityData.bBlock)
 					{
 						Targets.Empty();
-						if(Targets.Num() == 0)
+						if (Targets.Num() == 0)
 						{
 							Targets.Add(HitActor);
 						}
 					}
 					else
 					{
-						Targets.Empty();
+						
 						Targets.Add(HitActor);
 					}
 				}
@@ -80,12 +83,37 @@ void UAbilityObject::CreateRadialEffect()
 		}
 		ApplyEffect();
 	}
+
+	// Visual Debug atualizado para Overlaps
+#if !UE_BUILD_SHIPPING
+	if (GetWorld())
+	{
+		FColor DebugColor = bHit ? FColor::Green : FColor::Red;
+		DrawDebugSphere(GetWorld(), DesiredSpawnLocation, AbilityData.AbilityRadius, 16, DebugColor, false, 0.1f);
+		if (bHit)
+		{
+			for (const FOverlapResult& Overlap : OverlapResults)
+			{
+				if (AActor* OverlappedActor = Overlap.GetActor())
+				{
+					DrawDebugPoint(GetWorld(), OverlappedActor->GetActorLocation(), 10.f, FColor::Yellow, false, 0.1f);
+					DrawDebugLine(GetWorld(), DesiredSpawnLocation, OverlappedActor->GetActorLocation(), FColor::Cyan, false, 0.f);
+				}
+			}
+		}
+	}
+#endif
 }
 
 void UAbilityObject::CreateBeamEffect()
 {
 	if (!OwnerComponent) { return; }
 
+	if (AbilityData.AbilityRadius <= 0.f)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Radius <= 0. Abortando para evitar crash."));
+		return;
+	}
 
 	ECollisionChannel TraceChannel = ECC_AbilityTrace;
 
@@ -148,6 +176,22 @@ void UAbilityObject::CreateBeamEffect()
 		}
 		ApplyEffect();
 	}
+	//Visual Debug
+#if !UE_BUILD_SHIPPING
+	if (GetWorld())
+	{
+		FColor DebugColor = bHit ? FColor::Green : FColor::Red;
+		DrawDebugSphere(GetWorld(), DesiredSpawnLocation, AbilityData.AbilityRadius, 16, DebugColor, false, 0.1f);
+		if (bHit)
+		{
+			for (const FHitResult& Hit : HitResults)
+			{
+				DrawDebugPoint(GetWorld(), Hit.Location, 10.f, FColor::Yellow, false, 0.1f);
+				DrawDebugLine(GetWorld(), DesiredSpawnLocation, Hit.Location, FColor::Cyan, false, 0.f);
+			}
+		}
+	}
+#endif
 }
 
 void UAbilityObject::LaunchProjectile()
@@ -160,7 +204,7 @@ void UAbilityObject::LaunchProjectile()
 		
 		if (SpawnedProjectile)
 		{
-			UE_LOG(LogTemp, Log, TEXT("Projectile spawned successfully."));
+			UE_LOG(LogTemp, Warning, TEXT("Projectile spawned successfully."));
 
 			if (AbilityData.bNeedTarget)
 			{
@@ -180,9 +224,23 @@ void UAbilityObject::LaunchProjectile()
 
 }
 
-void UAbilityObject::ApplyEffect()
+void UAbilityObject::CreateAura(FName AuraName)
 {
-	if (!OwnerComponent) { return; }
+	if (!OwnerCharacter || !OwnerComponent) { UE_LOG(LogTemp, Error, TEXT("CreateAura FAILED")); return; }
+
+	OwnerCharacter->AddAura(AuraName, AbilityData.Aura);
+}
+
+void UAbilityObject::ApplyEffect_Implementation()
+{
+	UE_LOG(LogTemp, Warning, TEXT("ApplyEffect Called"));
+	
+	if (!OwnerComponent || !OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ApplyEffect interrupted -> OwnerComponent OR OwnerCharacter NOT Valid"))
+		return;
+	}
+
 
 	if (AbilityData.bNeedTarget)
 	{
@@ -191,22 +249,5 @@ void UAbilityObject::ApplyEffect()
 			UE_LOG(LogTemp, Warning, TEXT("Target is null. Cannot apply effect."));
 			return;
 		}
-
-		if(Target->GetClass()->ImplementsInterface(UDamageInterface::StaticClass()))
-		{
-			IDamageInterface::Execute_TakeDamage(Target, AbilityData.DamageData);
-			return;
-		}
-	}
-	else
-	{
-		for (AActor* TargetActor : Targets)
-		{
-			if(TargetActor && TargetActor->GetClass()->ImplementsInterface(UDamageInterface::StaticClass()))
-			{
-				IDamageInterface::Execute_TakeDamage(TargetActor, AbilityData.DamageData);
-			}
-		}
-
 	}
 }

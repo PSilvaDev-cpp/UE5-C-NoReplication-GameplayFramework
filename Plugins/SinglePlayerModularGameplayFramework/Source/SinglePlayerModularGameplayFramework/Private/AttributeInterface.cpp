@@ -2,9 +2,32 @@
 
 
 #include "AttributeInterface.h"
-#include "AttributeComponent.h"
 
-bool IAttributeInterface::CheckAttribute_Implementation(FName AttributeName)
+
+AActor* IAttributeInterface::GetOwnerActor()
+{
+	if (AActor* ImplementingObject = Cast<AActor>(this))
+	{
+		return ImplementingObject;
+	}
+	return nullptr;
+}
+
+void IAttributeInterface::UpdateAttributePropertyValue(FName AttributeName, float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride)
+{
+	AActor* Owner = GetOwnerActor();
+	if (Owner != nullptr)
+	{
+
+		if (UAttributeComponent* AttComp = Owner->FindComponentByClass<UAttributeComponent>())
+		{
+			AttComp->UpdateAttributePropertyValue(AttributeName, Value, APN, APT, bOverride);
+			return;
+		}
+	}
+}
+
+bool IAttributeInterface::CheckAttribute(FName AttributeName)
 {
 	AActor* Owner = GetOwnerActor();
 	if (Owner != nullptr)
@@ -20,7 +43,8 @@ bool IAttributeInterface::CheckAttribute_Implementation(FName AttributeName)
 	return false;
 }
 
-float IAttributeInterface::GetAttributePropertyValue_Implementation(FName AttributeName, EAttributePropertyName APN, EAttributePropertyType APT)
+
+float IAttributeInterface::GetAttributePropertyValue(FName AttributeName, EAttributePropertyName APN, EAttributePropertyType APT)
 {
 	AActor* Owner = GetOwnerActor();
 	if (Owner != nullptr)
@@ -28,32 +52,13 @@ float IAttributeInterface::GetAttributePropertyValue_Implementation(FName Attrib
 
 		if (UAttributeComponent* AttComp = Owner->FindComponentByClass<UAttributeComponent>())
 		{
-			return AttComp->GetAttributePropertyComputedValue(AttributeName, APN, APT);
+			if (float Result = AttComp->GetAttributePropertyComputedValue(AttributeName, APN, APT) > 0)
+			{
+				return Result;
+			}
+			return -1.f;
 		}
 		return -1.f;
 	}
 	return -1.f;
-}
-
-void IAttributeInterface::UpdateAttributePropertyValue_Implementation(FName AttributeName, float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride)
-{
-	AActor* Owner = GetOwnerActor();
-	if (Owner != nullptr)
-	{
-
-		if (UAttributeComponent* AttComp = Owner->FindComponentByClass<UAttributeComponent>())
-		{
-			AttComp->UpdateAttributePropertyValue(AttributeName, Value, APN, APT, bOverride);
-			return;
-		}	
-	}
-}
-
-AActor* IAttributeInterface::GetOwnerActor()
-{
-	if (AActor* ImplementingObject = Cast<AActor>(this))
-	{
-		return ImplementingObject;
-	}
-	return nullptr;
 }

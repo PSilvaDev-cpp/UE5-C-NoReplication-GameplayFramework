@@ -65,10 +65,12 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
+	TMap < FName, TSubclassOf<UAbilityObject>> Abilities;
+
 	TMap<FName, UAbilityObject*> AbilityContainer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
-	ACharacter* OwnerCharacter;
+	class AMainCharacter* OwnerCharacter;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
 	bool bCanCastAbility;
@@ -81,6 +83,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	void CallAbility(FName AbilityName);
+
+
 
 	TMap<FName, FOvertimeAbility> ActiveOverTimeAbilities;
 	TMap<FName, FCooldown> ActiveCooldowns;
@@ -99,6 +103,9 @@ public:
 	void ProcessCooldownTick();
 
 	void CastAbility(FName AbilityName);
+
+	void UpdateAbilityContainer();
+
 
 	AActor* Target;
 	FVector SpawnLocation;

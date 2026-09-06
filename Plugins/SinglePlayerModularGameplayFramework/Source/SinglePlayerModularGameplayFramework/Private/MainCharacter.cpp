@@ -19,11 +19,13 @@ void AMainCharacter::BeginPlay()
 	if (FindComponentByClass<UAttributeComponent>())
 	{
 		AttributeComponentREF = FindComponentByClass<UAttributeComponent>();
+		AttributeComponentREF->OwnerCharacter = this;
 	}
 
 	if (FindComponentByClass<UAbilityComponent>())
 	{
 		AbilityComponentREF = FindComponentByClass<UAbilityComponent>();
+		AbilityComponentREF->OwnerCharacter = this;
 	}
 
 }
@@ -42,21 +44,144 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 }
 
-/*
-bool AMainCharacter::CheckAttribute_Implementation(FName AttributeName)
+
+bool AMainCharacter::CheckAttribute(FName AttributeName)
 {
-	if (!this || !AttributeComponentREF) { return false; }
-
-	if (!AttributeComponentREF->FindAttribute(AttributeName)) { return false; }
-
-	return true;
+	return IAttributeInterface::CheckAttribute(AttributeName);
 }
 
-float AMainCharacter::GetAttributePropertyValue_Implementation(FName AttributeName, EAttributePropertyName APN, EAttributePropertyType APT)
+float AMainCharacter::GetAttributePropertyValue(FName AttributeName, EAttributePropertyName APN, EAttributePropertyType APT)
 {
-	if (!this || CheckAttribute_Implementation(AttributeName)) { return NULL; }
+	return IAttributeInterface::GetAttributePropertyValue(AttributeName, APN, APT);
+}
 
+
+void AMainCharacter::UpdateAttributePropertyValue(FName AttributeName, float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride)
+{
+	IAttributeInterface::UpdateAttributePropertyValue(AttributeName, Value, APN, APT, bOverride);
+}
+
+void AMainCharacter::AddAura(FName AuraName, FAuraData Aura)
+{
+	if (!this || !AbilityComponentREF) { return; }
+
+	ActiveAuras.FindOrAdd(AuraName, Aura);
+	UpdateAuras();
+}
+
+void AMainCharacter::RemoveAura(FName AuraName)
+{
+	if (!this || !AbilityComponentREF) { return; }
+
+	if (ActiveAuras.Contains(AuraName))
+	{
+		ActiveAuras.Remove(AuraName);
+	}
+	UpdateAuras();
+}
+
+void AMainCharacter::UpdateAuras()
+{
+	if (!this || !AbilityComponentREF) { return; }
+
+	TArray<FName> AurasToRemove;
+
+	for (auto& AuraPair : ActiveAuras)
+	{
+		FName AuraName = AuraPair.Key;
+		FAuraData& AuraData = AuraPair.Value;
+
+		if (!AurasSpheres.Contains(AuraName))
+		{
+			USphereComponent* NewSphere = NewObject<USphereComponent>(this, USphereComponent::StaticClass(), FName(*(AuraName.ToString() + "+Sphere")));
+			NewSphere->RegisterComponent();
+			NewSphere->SetupAttachment(RootComponent);
+			NewSphere->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+			NewSphere->SetGenerateOverlapEvents(true);
+			NewSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			NewSphere->SetSphereRadius(AuraData.AuraRadius);
+			AurasSpheres.FindOrAdd(AuraName, NewSphere);
+		}
+		else
+		{
+			AurasSpheres[AuraName]->SetSphereRadius(AuraData.AuraRadius);
+		}
+	}	
+
+	for (auto& AuraPair : AurasSpheres)
+	{
+		FName AuraSphereName = AuraPair.Key;
+		USphereComponent* AuraSphere = AuraPair.Value;
+
+		if (ActiveAuras.Contains(AuraSphereName))
+		{
+			continue;
+		}
+		else
+		{
+			AurasToRemove.Add(AuraSphereName);
+		}
+
+	}
+
+	for (FName AuraSphereName : AurasToRemove)
+	{
+		if (USphereComponent* Sphere = AurasSpheres.FindRef(AuraSphereName))
+		{
+			Sphere->DestroyComponent();
+			AurasSpheres.Remove(AuraSphereName);
+		}
+	}
+
+	if (ActiveAuras.Num() && AurasSpheres.Num() > 0)
+	{
+		if (!GetWorldTimerManager().IsTimerActive(AurasMasterTimerHandle))
+		{
+			GetWorldTimerManager().SetTimer(AurasMasterTimerHandle, this, &AMainCharacter::ProcessAurasTick, 0.1f, true);
+		}
+	}
+	else
+	{	
+		GetWorldTimerManager().ClearTimer(AurasMasterTimerHandle);	
+	}
+
+}
+
+void AMainCharacter::ProcessAurasTick()
+{
+	if (!this || !AbilityComponentREF) { return; }
+
+	TArray<FName> AurasToRemove;
+
+	for (auto& AuraPair : ActiveAuras)
+	{
+		FName AuraName = AuraPair.Key;
+		FAuraData& Aura = AuraPair.Value;
+
+		if (!AurasSpheres.Find(AuraName)) { continue; }
+
+		TArray<AActor*> OverlappingActors;
+		TSubclassOf<AActor> ClassFilter = AActor::StaticClass();
 	
+		AurasSpheres[AuraName]->GetOverlappingActors(OverlappingActors, ClassFilter);
 
+		Aura.Accumulator += MasterTickInterval;
+
+		if (!Aura.bPermanent && Aura.Accumulator >= Aura.Duration)
+		{
+			AurasToRemove.Add(AuraName);
+		}
+		if (Aura.Accumulator >= Aura.TickRate)
+		{
+			AbilityComponentREF->FindAbility(AuraName)->Targets = OverlappingActors;
+			AbilityComponentREF->FindAbility(AuraName)->ApplyEffect();
+			Aura.Accumulator -= Aura.TickRate;
+		}
+
+	}
+	for (FName Aura : AurasToRemove)
+	{
+		RemoveAura(Aura);
+	}
 }
-*/
+

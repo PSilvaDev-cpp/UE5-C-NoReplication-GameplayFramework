@@ -59,6 +59,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
 	TMap<FName, FAttributeData> Attributes;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
+	class AMainCharacter* OwnerCharacter;
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	float GetAttributePropertyBaseValue(FName Attr, EAttributePropertyName APN, EAttributePropertyType APT);

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "AbilityData.h"
+//#include "Components/SphereComponent.h"
 #include "AbilityObject.generated.h"
 
 /**
@@ -28,10 +29,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
 	FAbilityData AbilityData;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	AActor* Target;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	TArray<AActor*> Targets;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
@@ -41,7 +42,7 @@ public:
 	UActorComponent* OwnerComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
-	ACharacter* OwnerCharacter;
+	class AMainCharacter* OwnerCharacter;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
 	FVector DesiredSpawnLocation;
@@ -49,15 +50,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
 	TSubclassOf<AProjectileActor> ProjectileClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	bool VisualbDebug = true;
+
 	FTimerHandle AbilityEffectTimerHandle;
 	FTimerHandle AbilityCooldownTimerHandle;
 
 	
-
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Ability")
 	void ApplyEffect();
+
 	void CreateRadialEffect();
 	void CreateBeamEffect();
 	void LaunchProjectile();
+	void CreateAura(FName AuraName);
+
 
 
 };
