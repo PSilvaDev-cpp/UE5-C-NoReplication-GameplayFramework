@@ -19,7 +19,10 @@ struct FOvertimeAbility
 	float TickRate = 0.f;
 
 	UPROPERTY()
-	float Accumulator = 0.f;
+	float TickAccumulator = 0.f;
+
+	UPROPERTY()
+	float DurationAccumulator = 0.f;
 
 	UPROPERTY()
 	bool bHasDuration = false;
@@ -67,6 +70,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
 	TMap < FName, TSubclassOf<UAbilityObject>> Abilities;
 
+	UPROPERTY()
 	TMap<FName, UAbilityObject*> AbilityContainer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
@@ -77,6 +81,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	bool VerifyCanCastAbility(UAbilityObject* Ability);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities")
+	bool HasEnoughAttribute(UAbilityObject* Ability);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities")
+	bool CheckIsInCooldown(UAbilityObject* Ability);
+
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	UAbilityObject* FindAbility(FName AbilityName);
@@ -102,7 +113,7 @@ public:
 	void EndCooldown(FName AbilityName);
 	void ProcessCooldownTick();
 
-	void CastAbility(FName AbilityName);
+	bool CastAbility(FName AbilityName);
 
 	void UpdateAbilityContainer();
 

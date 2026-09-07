@@ -75,6 +75,10 @@ void AMainCharacter::RemoveAura(FName AuraName)
 
 	if (ActiveAuras.Contains(AuraName))
 	{
+		if (AurasSpheres.Contains(AuraName))
+		{
+			AurasSpheres.FindRef(AuraName)->DestroyComponent();	
+		}
 		ActiveAuras.Remove(AuraName);
 	}
 	UpdateAuras();
@@ -100,6 +104,7 @@ void AMainCharacter::UpdateAuras()
 			NewSphere->SetGenerateOverlapEvents(true);
 			NewSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 			NewSphere->SetSphereRadius(AuraData.AuraRadius);
+			NewSphere->bHiddenInGame = false;
 			AurasSpheres.FindOrAdd(AuraName, NewSphere);
 		}
 		else
@@ -165,17 +170,19 @@ void AMainCharacter::ProcessAurasTick()
 	
 		AurasSpheres[AuraName]->GetOverlappingActors(OverlappingActors, ClassFilter);
 
-		Aura.Accumulator += MasterTickInterval;
+		Aura.TickAccumulator += MasterTickInterval;
+		Aura.DurationAccumulator += MasterTickInterval;
 
-		if (!Aura.bPermanent && Aura.Accumulator >= Aura.Duration)
+		if (!Aura.bPermanent && Aura.DurationAccumulator >= Aura.Duration)
 		{
 			AurasToRemove.Add(AuraName);
+			continue;
 		}
-		if (Aura.Accumulator >= Aura.TickRate)
+		if (Aura.TickAccumulator >= Aura.TickRate)
 		{
 			AbilityComponentREF->FindAbility(AuraName)->Targets = OverlappingActors;
 			AbilityComponentREF->FindAbility(AuraName)->ApplyEffect();
-			Aura.Accumulator -= Aura.TickRate;
+			Aura.TickAccumulator -= Aura.TickRate;
 		}
 
 	}

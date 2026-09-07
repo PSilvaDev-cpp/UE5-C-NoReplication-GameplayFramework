@@ -10,6 +10,9 @@
 #include "DrawDebugHelpers.h"
 #include "MainCharacter.h"
 #include "Engine/OverlapResult.h"
+#include "CollisionQueryParams.h"
+#include "Components/CapsuleComponent.h"
+
 //#include "AttributeComponent.h"
 
 #include "GameFramework/ProjectileMovementComponent.h" 
@@ -124,23 +127,28 @@ void UAbilityObject::CreateBeamEffect()
 	}
 
 	TArray<FHitResult> HitResults;
+
 	FVector ForwardVector = OwnerCharacter->GetActorForwardVector();
-	FVector EndLocation = DesiredSpawnLocation + ForwardVector * AbilityData.AbilityRange;
+	FRotator SweepRot = FRotator(90.f, OwnerCharacter->GetActorRotation().Yaw, 0.f);
+	FQuat Rotation = SweepRot.Quaternion();
+	
+	FVector StartLocation = DesiredSpawnLocation + ForwardVector * 2.f;
+	FVector EndLocation = StartLocation + (ForwardVector * AbilityData.AbilityRange);
+	float HalfHeight = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	FCollisionShape SweepShape = FCollisionShape::MakeCapsule(AbilityData.AbilityRadius, HalfHeight );
 
 	bool bHit = GetWorld()->SweepMultiByChannel(
 		HitResults,
-		DesiredSpawnLocation,
+		StartLocation,
 		EndLocation,
-		FQuat::Identity,
+		Rotation,
 		TraceChannel,
-		FCollisionShape::MakeSphere(AbilityData.AbilityRadius),
+		SweepShape,
 		Params
 	);
 
 	if (bHit)
 	{
-
-
 		for (const FHitResult& Hit : HitResults)
 		{
 			AActor* HitActor = Hit.GetActor();
@@ -181,13 +189,17 @@ void UAbilityObject::CreateBeamEffect()
 	if (GetWorld())
 	{
 		FColor DebugColor = bHit ? FColor::Green : FColor::Red;
-		DrawDebugSphere(GetWorld(), DesiredSpawnLocation, AbilityData.AbilityRadius, 16, DebugColor, false, 0.1f);
+		DrawDebugCapsule(GetWorld(), StartLocation,
+			HalfHeight,
+			AbilityData.AbilityRadius,
+			Rotation,
+			DebugColor, false, 0.1);
 		if (bHit)
 		{
 			for (const FHitResult& Hit : HitResults)
 			{
 				DrawDebugPoint(GetWorld(), Hit.Location, 10.f, FColor::Yellow, false, 0.1f);
-				DrawDebugLine(GetWorld(), DesiredSpawnLocation, Hit.Location, FColor::Cyan, false, 0.f);
+				DrawDebugLine(GetWorld(), StartLocation, Hit.Location, FColor::Cyan, false, 0.f);
 			}
 		}
 	}
@@ -228,7 +240,13 @@ void UAbilityObject::CreateAura(FName AuraName)
 {
 	if (!OwnerCharacter || !OwnerComponent) { UE_LOG(LogTemp, Error, TEXT("CreateAura FAILED")); return; }
 
-	OwnerCharacter->AddAura(AuraName, AbilityData.Aura);
+	FAuraData Aura;
+	Aura.AuraRadius = AbilityData.AbilityRadius;
+	Aura.bPermanent = !AbilityData.bHasDuration;
+	Aura.Duration = AbilityData.AbilityDuration;
+	Aura.TickRate = AbilityData.AbilityTickRate;
+
+	OwnerCharacter->AddAura(AuraName, Aura);
 }
 
 void UAbilityObject::ApplyEffect_Implementation()

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using UnrealBuildTool.Rules;
 
 public class SinglePlayerModularGameplayFramework : ModuleRules
 {
@@ -30,6 +31,8 @@ public class SinglePlayerModularGameplayFramework : ModuleRules
 				"MetasoundEngine",
 				"MetasoundFrontend",
                 "GameplayTags",
+				"InputCore",
+				"EnhancedInput"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

@@ -67,6 +67,7 @@ UAbilityObject* UAbilityComponent::FindAbility(FName AbilityName)
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Ability %s not found in AbilityContainer."), *AbilityName.ToString());
+		AbilityContainer.Remove(AbilityName);
 		return nullptr;
 	}
 }
@@ -102,34 +103,37 @@ void UAbilityComponent::CallAbility(FName AbilityName)
 		FOvertimeAbility OvertimeAbility;
 		OvertimeAbility.SourceName = AbilityName;
 		OvertimeAbility.TickRate = Data.AbilityTickRate;
-		OvertimeAbility.Accumulator = 0.f;
+		OvertimeAbility.TickAccumulator = 0.f;
+		OvertimeAbility.DurationAccumulator = 0.f;
 		OvertimeAbility.bHasDuration = Data.bHasDuration;
 		OvertimeAbility.Duration = Data.AbilityDuration;
 
 		AddOvertimeAbilityEffect(AbilityName, OvertimeAbility);
 	}
+	
+	FCooldown AbilityCD;
+	AbilityCD.SourceName = AbilityName;
+	AbilityCD.CooldownTime = Data.Cooldown;
+	AbilityCD.Accumulator = 0.f;
+
+	StartCooldown(AbilityName, AbilityCD);
+
 }
 
-bool UAbilityComponent::VerifyCanCastAbility(UAbilityObject* Ability)
+bool UAbilityComponent::HasEnoughAttribute(UAbilityObject* Ability)
 {
-	if (!Ability || !OwnerCharacter) { return false; }
+	if (!Ability || !OwnerCharacter || !Ability->IsValidLowLevel()) { UE_LOG(LogTemp, Error, TEXT("HasEnoughAttribute() Interrupted, Ability OR OwnerCharacter NOT Valid")); return false; }
 
 	FAbilityData Data = Ability->AbilityData;
 	FName AttributeName = Data.VinculatedAttribute;
 	float Cost = Data.AttributeCost;
-	
-
-	if (Ability->bIsInCooldown)
-	{
-		bCanCastAbility = false;
-		return false;
-	}
 
 	if (Data.AttributeCost > 0.f && OwnerCharacter->GetClass()->ImplementsInterface(UAttributeInterface::StaticClass()))
 	{
 		if (!OwnerCharacter->CheckAttribute(AttributeName))
 		{
 			bCanCastAbility = false;
+			UE_LOG(LogTemp, Warning, TEXT("VerifyCanCastAbility Interrupted, OwnerChar->CheckAttribute returned false"));
 			return false;
 		}
 
@@ -138,25 +142,61 @@ bool UAbilityComponent::VerifyCanCastAbility(UAbilityObject* Ability)
 		if (AttributeCurrentValue < Cost)
 		{
 			bCanCastAbility = false;
+			UE_LOG(LogTemp, Warning, TEXT("VerifyCanCastAbility Interrupted, GetAttribute returned value > Cost"));
 			return false;
 		}
 	}
-	bCanCastAbility = true;
+	return true;
+}
+
+bool UAbilityComponent::CheckIsInCooldown(UAbilityObject* Ability)
+{
+	if (!Ability || !OwnerCharacter || !Ability->IsValidLowLevel()) { UE_LOG(LogTemp, Error, TEXT("CheckIsInCoodldown() Interrupted, Ability OR OwnerCharacter NOT Valid")); return false; }
+
+	FAbilityData Data = Ability->AbilityData;
+
+	if (Ability->bIsInCooldown)
+	{
+		bCanCastAbility = false;
+		UE_LOG(LogTemp, Error, TEXT("VerifyCanCastAbility Interrupted, Ability is in cooldown"));
+		return true;
+	}
+	return false;
+}
+
+bool UAbilityComponent::VerifyCanCastAbility(UAbilityObject* Ability)
+{
+	if (!Ability || !OwnerCharacter || !Ability->IsValidLowLevel()) { UE_LOG(LogTemp, Error, TEXT("VerifyCanCastAbility Interrupted, Ability OR OwnerCharacter NOT Valid")); return false; }
+	
+	if (!HasEnoughAttribute(Ability) || CheckIsInCooldown(Ability))
+	{
+		return false;
+	}
 	return true;
 }
 
 
-void UAbilityComponent::CastAbility(FName AbilityName)
+bool UAbilityComponent::CastAbility(FName AbilityName)
 {
-	if (!FindAbility(AbilityName)) { UE_LOG(LogTemp, Error, TEXT("Ability NOT found"));  return; }
+	bool Result = false;
+
+	if (!FindAbility(AbilityName)) { UE_LOG(LogTemp, Error, TEXT("Ability NOT found"));  return Result; }
 
 	if (!OwnerCharacter)
 	{
-		return;
+		return Result;
 	}
 
 	UAbilityObject* Ability = AbilityContainer[AbilityName];
 	FAbilityData Data = Ability->AbilityData;
+
+	if (Data.VinculatedAttribute != "None" || Data.AttributeCost > 0)
+	{
+		if (!HasEnoughAttribute(Ability))
+		{
+			return false;
+		}
+	}
 
 	if (Data.bSelfOrigin)
 	{
@@ -172,49 +212,43 @@ void UAbilityComponent::CastAbility(FName AbilityName)
 	if(Data.bNeedTarget && Target == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Ability %s requires a target but none was provided."), *AbilityName.ToString());
-		return;
+		return Result;
 	}
 
 	switch (Data.AbilityEffectType)
 	{
 		case EAbilityEffectType::Radial:
 			Ability->CreateRadialEffect();
+			Result = true;
 			break;
 		case EAbilityEffectType::Beam:
 			Ability->CreateBeamEffect();
+			Result = true;
 			break;
 		case EAbilityEffectType::Projectile:
 			Ability->LaunchProjectile();
+			Result = true;
 			break;
 		case EAbilityEffectType::InnerTarget:
 			Ability->ApplyEffect();
+			Result = true;
 			break;
 		case EAbilityEffectType::Aura:
 			Ability->CreateAura(AbilityName);
+			Result = true;
 			break;
 
 	}	
-
-
-
-
 
 	if (Data.AttributeCost > 0.f && OwnerCharacter->GetClass()->ImplementsInterface(UAttributeInterface::StaticClass()))
 	{
 		if (OwnerCharacter->CheckAttribute(AttributeName))
 		{
-				OwnerCharacter->UpdateAttributePropertyValue(AttributeName, -Cost,
-				EAttributePropertyName::Default, EAttributePropertyType::Current, false);
+			OwnerCharacter->UpdateAttributePropertyValue(AttributeName, -Cost,
+			EAttributePropertyName::Default, EAttributePropertyType::Current, false);
 		}
 	}
-		
-	FCooldown AbilityCD;
-	AbilityCD.SourceName = AbilityName;
-	AbilityCD.CooldownTime = Data.Cooldown;
-	AbilityCD.Accumulator = 0.f;
-
-	StartCooldown(AbilityName, AbilityCD);
-		
+	return Result;
 }
 
 void UAbilityComponent::AddOvertimeAbilityEffect(FName AbilityName, const FOvertimeAbility& OverTimeAbility)
@@ -252,17 +286,28 @@ void UAbilityComponent::ProcessOvertimeAbilitiesTicks()
 		FOvertimeAbility& OvertimeAbility = AbilityPair.Value;
 		if (FindAbility(AbilityName))
 		{
-			OvertimeAbility.Accumulator += MasterTickInterval;
+			OvertimeAbility.TickAccumulator += MasterTickInterval;
+			OvertimeAbility.DurationAccumulator += MasterTickInterval;
 
-			if (OvertimeAbility.bHasDuration && OvertimeAbility.Accumulator >= OvertimeAbility.Duration)
+			if (OvertimeAbility.TickRate <= 0.f)
+			{
+				OvertimeAbility.TickRate = 0.1f;
+			}
+
+			if (OvertimeAbility.bHasDuration && OvertimeAbility.DurationAccumulator >= OvertimeAbility.Duration)
 			{	
+				UE_LOG(LogTemp, Warning, TEXT("Duration EXPIRED: %s (Acc=%.2f, Dur=%.2f)"), *AbilityName.ToString(), OvertimeAbility.DurationAccumulator, OvertimeAbility.Duration);
 				AbilitiesToRemove.Add(AbilityName);
 				continue;
 			}
-			if (OvertimeAbility.Accumulator >= OvertimeAbility.TickRate)
+
+			if (OvertimeAbility.TickAccumulator >= OvertimeAbility.TickRate)
 			{
-				CastAbility(AbilityName);
-				OvertimeAbility.Accumulator -= OvertimeAbility.TickRate;
+				if (!CastAbility(AbilityName))
+				{
+					AbilitiesToRemove.Add(AbilityName);
+				}
+				OvertimeAbility.TickAccumulator -= OvertimeAbility.TickRate;
 			}
 		}
 		else

@@ -27,20 +27,23 @@ struct FAuraData
 
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	UPROPERTY()
 	float AuraRadius = 500.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	UPROPERTY()
 	bool bPermanent = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	UPROPERTY()
 	float Duration = 10.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	UPROPERTY()
 	float TickRate = 1.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
-	float Accumulator = 0.f;
+	UPROPERTY()
+	float TickAccumulator = 0.f;
+
+	UPROPERTY()
+	float DurationAccumulator = 0.f;
 
 };
 
