@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(BlueprintType, Blueprintable)
 class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API AMainPlayerController : public APlayerController
 {
 	GENERATED_BODY()

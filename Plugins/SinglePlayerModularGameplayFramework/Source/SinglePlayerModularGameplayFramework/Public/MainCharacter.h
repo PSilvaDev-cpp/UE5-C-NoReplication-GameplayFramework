@@ -9,6 +9,9 @@
 #include "DamageInterface.h"
 #include "AttributeInterface.h"
 #include "Components/SphereComponent.h"
+#include "InventoryComponent.h"
+#include "Blueprint/UserWidget.h"
+#include "MainUserWidget.h"
 
 #include "MainCharacter.generated.h"
 
@@ -43,9 +46,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AttributeInterface")
 	virtual void UpdateAttributePropertyValue(FName AttributeName, float Value, EAttributePropertyName APN, EAttributePropertyType APT, bool bOverride) override;
 	
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attribut");
 	UAttributeComponent* AttributeComponentREF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability");
 	UAbilityComponent* AbilityComponentREF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory");
+	UInventoryComponent* InventoryComponentREF;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD");
+	TSubclassOf<UMainUserWidget> MainHUDRef;
+
+	UPROPERTY(BlueprintReadOnly, Category = "HUD");
+	UMainUserWidget* MainHUDInstance;
 
 	TMap<FName, USphereComponent*> AurasSpheres;
 

@@ -26,6 +26,8 @@ class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API APlayerCharacter : public AMainCh
 	
 public:
 
+	APlayerCharacter();
+
 	virtual void BeginPlay() override;
 	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -49,6 +51,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input/Actions")
 	UInputAction* IA_OpenCloseInventory;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Controller")
+	AMainPlayerController* PC_Ref;
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);

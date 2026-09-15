@@ -4,20 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "ItemData.h" 
+#include "ItemData.h"
+#include "ItemPickUpActor.generated.h"
 
-#include "ItemActor.generated.h"
-
-struct FItemData;
+class UInventoryComponent;
 
 UCLASS()
-class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API AItemActor : public AActor
+class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API AItemPickUpActor : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AItemActor();
+	AItemPickUpActor();
 
 protected:
 	// Called when the game starts or when spawned
@@ -27,7 +26,13 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemData")
 	FItemData ItemData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemData")
+	int32 Amount;
+
+	UFUNCTION(BlueprintCallable, Category = "PickUp")
+	void PickUp(UInventoryComponent* Inventory);
 
 };

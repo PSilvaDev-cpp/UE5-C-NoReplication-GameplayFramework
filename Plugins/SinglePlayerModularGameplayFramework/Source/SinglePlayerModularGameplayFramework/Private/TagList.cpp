@@ -23,4 +23,14 @@ namespace GameTags
 
     UE_DEFINE_GAMEPLAY_TAG(Damage_Poison, "Damage.Poison");
     UE_DEFINE_GAMEPLAY_TAG(Damage_Direct, "Damage.Direct");
+
+    UE_DEFINE_GAMEPLAY_TAG(Item, "Item");
+    UE_DEFINE_GAMEPLAY_TAG(Item_Consumable, "Item.Consumable");
+    UE_DEFINE_GAMEPLAY_TAG(Item_Weapon, "Item.Weapon");
+    UE_DEFINE_GAMEPLAY_TAG(Item_Equipment, "Item.Equipment");
+    UE_DEFINE_GAMEPLAY_TAG(Item_Material, "Item.Material");
+    UE_DEFINE_GAMEPLAY_TAG(Item_Key, "Item.Key");
+    UE_DEFINE_GAMEPLAY_TAG(Item_Quest, "Item.Quest");
+    UE_DEFINE_GAMEPLAY_TAG(Item_Miscellaneous, "Item.Miscellaneous");
+
 }

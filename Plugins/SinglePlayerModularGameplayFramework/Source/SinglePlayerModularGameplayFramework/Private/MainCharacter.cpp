@@ -21,11 +21,23 @@ void AMainCharacter::BeginPlay()
 		AttributeComponentREF = FindComponentByClass<UAttributeComponent>();
 		AttributeComponentREF->OwnerCharacter = this;
 	}
-
 	if (FindComponentByClass<UAbilityComponent>())
 	{
 		AbilityComponentREF = FindComponentByClass<UAbilityComponent>();
 		AbilityComponentREF->OwnerCharacter = this;
+	}
+	if (FindComponentByClass<UInventoryComponent>())
+	{
+		InventoryComponentREF = FindComponentByClass<UInventoryComponent>();
+		InventoryComponentREF->OwnerCharacter = this;
+	}
+	if (MainHUDRef && GetWorld())
+	{
+		MainHUDInstance = CreateWidget<UMainUserWidget>(GetWorld(), MainHUDRef);
+		if (MainHUDInstance)
+		{
+			MainHUDInstance->AddToViewport();
+		}
 	}
 
 }

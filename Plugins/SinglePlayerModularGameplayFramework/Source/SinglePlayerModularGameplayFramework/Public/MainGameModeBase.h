@@ -10,7 +10,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(BlueprintType, Blueprintable)
 class SINGLEPLAYERMODULARGAMEPLAYFRAMEWORK_API AMainGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
